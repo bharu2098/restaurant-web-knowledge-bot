@@ -2,7 +2,11 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.rag.rag_pipeline import build_website_rag
-from app.services.memory_service import set_website_retriever
+
+from app.services.memory_service import (
+    set_website_retriever,
+    set_website_keyword_retriever,
+)
 
 router = APIRouter()
 
@@ -18,10 +22,17 @@ async def load_website(request: WebsiteRequest):
     """
 
     try:
-        retriever = build_website_rag(request.url)
 
-        # Store Website Retriever
-        set_website_retriever(retriever)
+        # Build both retrievers
+        vector_retriever, keyword_retriever = build_website_rag(
+            request.url
+        )
+
+        # Store Vector Retriever
+        set_website_retriever(vector_retriever)
+
+        # Store Keyword Retriever
+        set_website_keyword_retriever(keyword_retriever)
 
         return {
             "status": "success",
@@ -31,6 +42,7 @@ async def load_website(request: WebsiteRequest):
         }
 
     except Exception as e:
+
         raise HTTPException(
             status_code=500,
             detail=f"Failed to load website: {str(e)}"

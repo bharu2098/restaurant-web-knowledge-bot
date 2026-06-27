@@ -7,7 +7,12 @@ from app.rag.pdf_loader import load_pdf
 from app.rag.text_splitter import split_documents
 from app.rag.vector_store import create_vector_store
 from app.rag.retriever import create_retriever
-from app.services.memory_service import set_pdf_retriever
+from app.rag.keyword_retriever import create_keyword_retriever
+
+from app.services.memory_service import (
+    set_pdf_retriever,
+    set_pdf_keyword_retriever,
+)
 
 router = APIRouter()
 
@@ -50,14 +55,23 @@ async def upload_pdf(file: UploadFile = File(...)):
             detail="No text chunks could be created from the uploaded PDF."
         )
 
-    # Create vector store
+    # --------------------------------
+    # Vector Retriever
+    # --------------------------------
     vector_store = create_vector_store(chunks)
 
-    # Create retriever
-    retriever = create_retriever(vector_store)
+    vector_retriever = create_retriever(vector_store)
 
-    # Store PDF retriever
-    set_pdf_retriever(retriever)
+    # --------------------------------
+    # Keyword Retriever (BM25)
+    # --------------------------------
+    keyword_retriever = create_keyword_retriever(chunks)
+
+    # Store Vector Retriever
+    set_pdf_retriever(vector_retriever)
+
+    # Store Keyword Retriever
+    set_pdf_keyword_retriever(keyword_retriever)
 
     return {
         "status": "success",

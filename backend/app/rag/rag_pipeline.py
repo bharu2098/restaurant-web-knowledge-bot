@@ -4,12 +4,15 @@ from app.rag.website_loader import load_website
 from app.rag.text_splitter import split_documents
 from app.rag.vector_store import create_vector_store
 from app.rag.retriever import create_retriever
-from app.services.gemini_service import generate_answer
+from app.rag.keyword_retriever import create_keyword_retriever
+
+from app.services.llm_service import generate_answer
 
 
 def build_website_rag(url: str):
     """
-    Build the Website Knowledge Base and return a retriever.
+    Build the Website Knowledge Base and return both
+    the Vector Retriever and BM25 Keyword Retriever.
     """
 
     documents = load_website(url)
@@ -24,60 +27,95 @@ def build_website_rag(url: str):
     if not chunks:
         raise ValueError("No text chunks were created from the website.")
 
+    # -----------------------------
+    # Vector Retriever
+    # -----------------------------
     vector_store = create_vector_store(chunks)
 
-    retriever = create_retriever(vector_store)
+    vector_retriever = create_retriever(vector_store)
+
+    # -----------------------------
+    # BM25 Keyword Retriever
+    # -----------------------------
+    keyword_retriever = create_keyword_retriever(chunks)
 
     print("✅ Website indexed successfully")
 
-    return retriever
-
+    return vector_retriever, keyword_retriever
 
 def ask_question(
     website_retriever,
+    website_keyword_retriever,
     pdf_retriever,
+    pdf_keyword_retriever,
+    provider: str,
     question: str,
 ):
     """
-    Retrieve information from Website Knowledge,
-    PDF Knowledge, or both.
+    Retrieve information using Hybrid Search
+    (Vector + BM25) from Website and PDF.
     """
 
-    website_docs = []
-    pdf_docs = []
+    all_docs = []
 
-    # -------------------------------
-    # Retrieve Website Knowledge
-    # -------------------------------
+    # ==========================================
+    # Website Vector Search
+    # ==========================================
     if website_retriever is not None:
 
-        website_docs = website_retriever.invoke(question)
+        docs = website_retriever.invoke(question)
 
-        print(f"🌐 Website Documents Retrieved: {len(website_docs)}")
+        print(f"🌐 Website Vector Results: {len(docs)}")
 
-    # -------------------------------
-    # Retrieve PDF Knowledge
-    # -------------------------------
+        all_docs.extend(docs)
+
+    # ==========================================
+    # Website BM25 Search
+    # ==========================================
+    if website_keyword_retriever is not None:
+
+        docs = website_keyword_retriever.invoke(question)
+
+        print(f"🔑 Website BM25 Results: {len(docs)}")
+
+        all_docs.extend(docs)
+
+    # ==========================================
+    # PDF Vector Search
+    # ==========================================
     if pdf_retriever is not None:
 
-        pdf_docs = pdf_retriever.invoke(question)
+        docs = pdf_retriever.invoke(question)
 
-        print(f"📄 PDF Documents Retrieved: {len(pdf_docs)}")
+        print(f"📄 PDF Vector Results: {len(docs)}")
 
-    all_docs = website_docs + pdf_docs
+        all_docs.extend(docs)
+
+    # ==========================================
+    # PDF BM25 Search
+    # ==========================================
+    if pdf_keyword_retriever is not None:
+
+        docs = pdf_keyword_retriever.invoke(question)
+
+        print(f"📑 PDF BM25 Results: {len(docs)}")
+
+        all_docs.extend(docs)
 
     print(f"🔍 Total Retrieved Documents: {len(all_docs)}")
-
     if not all_docs:
-        return {
-            "answer": "I couldn't find any relevant information in the loaded website or uploaded PDF.",
-            "sources": [],
-            "confidence": "Low"
-        }
+     return {
+        "answer": (
+            "I'm designed to answer questions only from the "
+            "loaded website or uploaded PDF."
+        ),
+        "sources": [],
+        "confidence": "Low"
+    }
 
-    # -------------------------------
-    # Remove Duplicate Chunks
-    # -------------------------------
+    # ==========================================
+    # Remove duplicate chunks
+    # ==========================================
     unique_docs = []
     seen = set()
 
@@ -86,13 +124,12 @@ def ask_question(
         text = doc.page_content.strip()
 
         if text not in seen:
-
             seen.add(text)
             unique_docs.append(doc)
 
-    # -------------------------------
-    # Build Separate Context
-    # -------------------------------
+    # ==========================================
+    # Build Context
+    # ==========================================
     website_context = []
     pdf_context = []
 
@@ -101,11 +138,8 @@ def ask_question(
         source = doc.metadata.get("source", "")
 
         if source.startswith("http"):
-
             website_context.append(doc.page_content)
-
         else:
-
             pdf_context.append(doc.page_content)
 
     context = f"""
@@ -118,24 +152,37 @@ def ask_question(
 {chr(10).join(pdf_context)}
 """
 
-    # -------------------------------
+    # ==========================================
     # Generate Answer
-    # -------------------------------
+    # ==========================================
     answer = generate_answer(
+        provider=provider,
         context=context,
-        question=question
+        question=question,
     )
+    # ==========================================
+    # Out-of-Domain Detection
+    #==========================================
 
-    # -------------------------------
+    OUT_OF_DOMAIN_MESSAGE = (
+    "I'm designed to answer questions only from the loaded website or uploaded PDF."
+)
+    if answer.strip() == OUT_OF_DOMAIN_MESSAGE:
+      return {
+        "answer": answer,
+        "sources": [],
+        "confidence": "Low"
+    }
+
+    # ==========================================
     # Source Attribution
-    # -------------------------------
+    # ==========================================
     sources = []
     added = set()
 
     for doc in unique_docs:
 
         metadata = doc.metadata
-
         source = metadata.get("source", "")
 
         if source.startswith("http"):
@@ -143,7 +190,6 @@ def ask_question(
             key = ("Website", source)
 
             if key not in added:
-
                 added.add(key)
 
                 sources.append({
@@ -154,13 +200,11 @@ def ask_question(
         else:
 
             filename = Path(source).name if source else "Unknown PDF"
-
             page = metadata.get("page")
 
             key = ("PDF", filename, page)
 
             if key not in added:
-
                 added.add(key)
 
                 sources.append({
@@ -169,9 +213,9 @@ def ask_question(
                     "page": page + 1 if page is not None else None
                 })
 
-    # -------------------------------
+    # ==========================================
     # Confidence
-    # -------------------------------
+    # ==========================================
     total_docs = len(unique_docs)
 
     if total_docs >= 5:

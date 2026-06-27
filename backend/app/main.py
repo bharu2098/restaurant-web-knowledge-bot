@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from app.api.website import router as website_router
 from app.api.chat import router as chat_router
 from app.api.upload import router as upload_router
+from app.api.history import router as history_router
 
 app = FastAPI(
     title="Restaurant Web Knowledge Bot",
@@ -29,6 +30,13 @@ app.include_router(
     chat_router,
     prefix="/chat",
     tags=["Chat"]
+)
+
+# Chat History API
+app.include_router(
+    history_router,
+    prefix="/history",
+    tags=["History"]
 )
 
 

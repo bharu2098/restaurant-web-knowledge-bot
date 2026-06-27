@@ -15,11 +15,22 @@ backend/.env
 .pytest_cache/
 .mypy_cache/
 
+# =========================
 # ChromaDB
+# =========================
 backend/app/database/chroma_db/
+chroma_db/
 
+# =========================
 # Uploads
+# =========================
 backend/app/uploads/
+uploads/
+
+# =========================
+# CSV Exports
+# =========================
+exports/
 
 # =========================
 # React / Vite Frontend
