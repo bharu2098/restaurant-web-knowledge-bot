@@ -50,6 +50,7 @@ def ask_question(
     pdf_keyword_retriever,
     provider: str,
     question: str,
+    conversation_history=None,
 ):
     """
     Retrieve information using Hybrid Search
@@ -57,13 +58,21 @@ def ask_question(
     """
 
     all_docs = []
+    # ==========================================
+    # Build Retrieval Query
+    # ==========================================
 
+    retrieval_query = question
+
+    if conversation_history and len(conversation_history) > 0:
+       last_question = conversation_history[-1]["question"]
+       retrieval_query = f"{last_question}\n{question}"
     # ==========================================
     # Website Vector Search
     # ==========================================
     if website_retriever is not None:
 
-        docs = website_retriever.invoke(question)
+        docs = website_retriever.invoke(retrieval_query)
 
         print(f"🌐 Website Vector Results: {len(docs)}")
 
@@ -74,7 +83,7 @@ def ask_question(
     # ==========================================
     if website_keyword_retriever is not None:
 
-        docs = website_keyword_retriever.invoke(question)
+        docs = website_keyword_retriever.invoke(retrieval_query)
 
         print(f"🔑 Website BM25 Results: {len(docs)}")
 
@@ -85,7 +94,7 @@ def ask_question(
     # ==========================================
     if pdf_retriever is not None:
 
-        docs = pdf_retriever.invoke(question)
+        docs = pdf_retriever.invoke(retrieval_query)
 
         print(f"📄 PDF Vector Results: {len(docs)}")
 
@@ -96,7 +105,7 @@ def ask_question(
     # ==========================================
     if pdf_keyword_retriever is not None:
 
-        docs = pdf_keyword_retriever.invoke(question)
+        docs = pdf_keyword_retriever.invoke(retrieval_query)
 
         print(f"📑 PDF BM25 Results: {len(docs)}")
 
@@ -104,14 +113,14 @@ def ask_question(
 
     print(f"🔍 Total Retrieved Documents: {len(all_docs)}")
     if not all_docs:
-     return {
-        "answer": (
-            "I'm designed to answer questions only from the "
-            "loaded website or uploaded PDF."
-        ),
-        "sources": [],
-        "confidence": "Low"
-    }
+        return {
+            "answer": (
+                "I'm designed to answer questions only from the "
+                "loaded website or uploaded PDF."
+            ),
+            "sources": [],
+            "confidence": "Low"
+        }
 
     # ==========================================
     # Remove duplicate chunks
@@ -153,40 +162,70 @@ def ask_question(
 """
 
     # ==========================================
+    # Build Conversation Memory
+    # ==========================================
+
+    conversation_context = ""
+
+    if conversation_history:
+
+     conversation_context += "\n========== PREVIOUS CONVERSATION ==========\n"
+
+    for chat in conversation_history:
+
+        conversation_context += (
+            f"\nUser: {chat['question']}\n"
+            f"Assistant: {chat['answer']}\n"
+        )
+
+        conversation_context += "\n===========================================\n"
+    # ==========================================
     # Generate Answer
     # ==========================================
     answer = generate_answer(
         provider=provider,
         context=context,
         question=question,
+        conversation_history=conversation_context,
     )
     # ==========================================
     # Out-of-Domain Detection
-    #==========================================
+    # ==========================================
 
     OUT_OF_DOMAIN_MESSAGE = (
-    "I'm designed to answer questions only from the loaded website or uploaded PDF."
-)
+        "I'm designed to answer questions only from the loaded website or uploaded PDF."
+    )
     if answer.strip() == OUT_OF_DOMAIN_MESSAGE:
-      return {
-        "answer": answer,
-        "sources": [],
-        "confidence": "Low"
-    }
+        return {
+            "answer": answer,
+            "sources": [],
+            "confidence": "Low"
+        }
 
     # ==========================================
-    # Source Attribution
+    # Source Attribution (Relevant Sources Only)
     # ==========================================
+
     sources = []
     added = set()
 
+    answer_lower = answer.lower()
+
     for doc in unique_docs:
+        chunk = doc.page_content.lower()
+
+        # Only include sources whose chunk overlaps with the answer
+        if not any(
+            word in answer_lower
+            for word in chunk.split()
+            if len(word) > 4
+        ):
+            continue
 
         metadata = doc.metadata
         source = metadata.get("source", "")
 
         if source.startswith("http"):
-
             key = ("Website", source)
 
             if key not in added:
@@ -196,9 +235,7 @@ def ask_question(
                     "type": "Website",
                     "url": source
                 })
-
         else:
-
             filename = Path(source).name if source else "Unknown PDF"
             page = metadata.get("page")
 
@@ -212,21 +249,26 @@ def ask_question(
                     "file": filename,
                     "page": page + 1 if page is not None else None
                 })
-
     # ==========================================
-    # Confidence
+    # Confidence Score
     # ==========================================
-    total_docs = len(unique_docs)
 
-    if total_docs >= 5:
-        confidence = "High"
-    elif total_docs >= 3:
-        confidence = "Medium"
+    retrieved_docs = len(unique_docs)
+    relevant_sources = len(sources)
+
+    if relevant_sources == 0:
+     confidence = "Low"
+
+    elif relevant_sources >= 2 and retrieved_docs >= 4:
+      confidence = "High"
+
+    elif relevant_sources >= 1:
+     confidence = "Medium"
+
     else:
-        confidence = "Low"
-
+     confidence = "Low"
     return {
         "answer": answer,
         "sources": sources,
-        "confidence": confidence
+        "confidence": confidence,
     }

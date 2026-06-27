@@ -1,9 +1,16 @@
 import csv
 from pathlib import Path
 
-# In-memory chat history
+# ==========================================
+# In-Memory Chat History
+# ==========================================
+
 chat_history = []
 
+
+# ==========================================
+# Save Chat
+# ==========================================
 
 def save_chat(question: str, answer: str):
     """
@@ -16,25 +23,55 @@ def save_chat(question: str, answer: str):
     })
 
 
+# ==========================================
+# Get Full Chat History
+# ==========================================
+
 def get_chat_history():
     """
-    Return all chat history.
+    Return all stored conversations.
     """
 
     return chat_history
 
 
+# ==========================================
+# Get Recent Conversation Memory
+# ==========================================
+
+def get_recent_chat_history(limit: int = 5):
+    """
+    Return the last N conversations.
+
+    This is used as conversation memory so the
+    assistant understands follow-up questions.
+    """
+
+    if limit <= 0:
+        return []
+
+    return chat_history[-limit:]
+
+
+# ==========================================
+# Clear Chat History
+# ==========================================
+
 def clear_chat_history():
     """
-    Clear all stored chat history.
+    Remove all stored conversations.
     """
 
     chat_history.clear()
 
 
+# ==========================================
+# Export Chat History
+# ==========================================
+
 def export_chat_history():
     """
-    Export chat history to CSV.
+    Export chat history as a CSV file.
     """
 
     export_dir = Path("exports")

@@ -15,97 +15,134 @@ def get_llm():
     )
 
 
-def generate_answer(context: str, question: str):
+def generate_answer(
+    context: str,
+    question: str,
+    conversation_history: str = "",
+):
     """
-    Generate an answer using the Website and PDF knowledge.
+    Generate an answer using the retrieved knowledge.
     """
 
     llm = get_llm()
 
     prompt = f"""
-You are the AI assistant for the Restaurant Web Knowledge Bot.
+You are an AI Knowledge Assistant.
 
-You have TWO knowledge sources.
+Your job is to answer questions ONLY using the retrieved knowledge provided below.
 
-1. WEBSITE KNOWLEDGE
-2. PDF KNOWLEDGE
+The retrieved knowledge may come from:
 
-Your job is to answer ONLY using the provided knowledge.
+• One or more websites
+• One or more PDF documents
+• Both websites and PDFs together
 
-=============================
+==================================================
+PREVIOUS CONVERSATION
+==================================================
+
+{conversation_history}
+
+==================================================
 IMPORTANT RULES
-=============================
+==================================================
 
-1. Read BOTH Website Knowledge and PDF Knowledge carefully.
+1. Read the retrieved knowledge carefully before answering.
 
-2. The user's question may contain MULTIPLE QUESTIONS.
+2. Read the previous conversation before answering.
 
-3. Answer EVERY PART of the question separately.
+3. If the current question refers to:
 
-4. If information comes from BOTH Website and PDF,
-combine it into ONE complete answer.
+- it
+- they
+- them
+- this
+- that
+- these
+- those
+- its
+- their
 
-5. If one part is found only in Website Knowledge,
-answer that part.
+use the previous conversation ONLY to understand what the user is referring to.
 
-6. If another part is found only in PDF Knowledge,
-answer that part.
+4. Answer ONLY using the retrieved knowledge.
 
-7. Never use outside knowledge.
+5. Never use your own knowledge.
 
-8. Never guess.
+6. Never guess.
 
-9. Never invent information.
+7. Never invent information.
 
-10. If the user's question CANNOT be answered using the Website Knowledge
-or PDF Knowledge, reply EXACTLY with:
+8. If information exists in multiple retrieved sources,
+combine it into one complete answer.
 
-"I'm designed to answer questions only from the loaded website or uploaded PDF."
+9. If the user's question contains multiple questions,
+answer every part.
 
-11. Never answer from your own knowledge.
+10. If the answer cannot be found in the retrieved knowledge,
+reply EXACTLY with:
 
-12. Never use information that is not present in the provided context.
+I'm designed to answer questions only from the loaded website or uploaded PDF.
 
-13. If the retrieved context is unrelated to the user's question,
-treat the question as out-of-domain and reply ONLY with:
+11. Ignore previous conversation whenever it conflicts with the retrieved knowledge.
 
-"I'm designed to answer questions only from the loaded website or uploaded PDF."
-=============================
+12. Never mention:
+
+- Website Knowledge
+- PDF Knowledge
+- Retrieved Knowledge
+- Context
+- Prompt
+- Previous Conversation
+
+==================================================
 FORMATTING
-=============================
+==================================================
 
-• Use bullet points when appropriate.
+• Use bullet points whenever appropriate.
 
 • Preserve formatting for:
-- Opening hours
-- Menu items
+
+- Tables
 - Prices
-- Contact information
+- Menu items
 - Addresses
+- Contact information
+- Dates
+- Timings
+- Lists
 
-• Never mention:
-Website Knowledge
-PDF Knowledge
-Context
-Prompt
-
-=============================
-CONTEXT
-=============================
+==================================================
+RETRIEVED KNOWLEDGE
+==================================================
 
 {context}
 
-=============================
-USER QUESTION
-=============================
+==================================================
+CURRENT QUESTION
+==================================================
 
 {question}
 
-=============================
+==================================================
 FINAL ANSWER
-=============================
+==================================================
 
-Provide one complete answer using every relevant piece of information from the available knowledge sources.
+Answer ONLY using the retrieved knowledge.
+
+Use the previous conversation ONLY to resolve follow-up questions such as:
+
+- it
+- they
+- them
+- this
+- that
+- those
+- these
+
+If the answer is not available in the retrieved knowledge, reply exactly:
+
+I'm designed to answer questions only from the loaded website or uploaded PDF.
 """
 
     response = llm.invoke(prompt)

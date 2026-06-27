@@ -6,6 +6,8 @@ from app.rag.rag_pipeline import build_website_rag
 from app.services.memory_service import (
     set_website_retriever,
     set_website_keyword_retriever,
+    clear_pdf_retriever,
+    clear_pdf_keyword_retriever,
 )
 
 router = APIRouter()
@@ -28,10 +30,14 @@ async def load_website(request: WebsiteRequest):
             request.url
         )
 
-        # Store Vector Retriever
+        # Clear previously loaded PDF Knowledge Base
+        clear_pdf_retriever()
+        clear_pdf_keyword_retriever()
+
+        # Store Website Vector Retriever
         set_website_retriever(vector_retriever)
 
-        # Store Keyword Retriever
+        # Store Website Keyword Retriever
         set_website_keyword_retriever(keyword_retriever)
 
         return {
