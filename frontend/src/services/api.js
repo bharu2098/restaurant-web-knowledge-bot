@@ -3,18 +3,20 @@
 const BASE_URL =
   import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
-/**
- * Generic API Request Helper
- */
+/* ==========================================================
+   Generic API Request Helper
+========================================================== */
+
 async function apiRequest(endpoint, options = {}) {
   try {
     const response = await fetch(`${BASE_URL}${endpoint}`, options);
 
-    const contentType = response.headers.get("content-type");
+    let data;
 
-    let data = null;
+    const contentType =
+      response.headers.get("content-type") || "";
 
-    if (contentType && contentType.includes("application/json")) {
+    if (contentType.includes("application/json")) {
       data = await response.json();
     } else {
       data = await response.text();
@@ -23,21 +25,27 @@ async function apiRequest(endpoint, options = {}) {
     if (!response.ok) {
       throw new Error(
         data?.detail ||
-          data?.message ||
-          "Something went wrong."
+        data?.message ||
+        data ||
+        "Something went wrong."
       );
     }
 
     return data;
+
   } catch (error) {
     console.error("API Error:", error);
-    throw error;
+
+    return {
+      success: false,
+      error: error.message || "Network Error",
+    };
   }
 }
 
-/* ===========================================================
+/* ==========================================================
    Upload PDF
-=========================================================== */
+========================================================== */
 
 export async function uploadPDF(file) {
   const formData = new FormData();
@@ -49,9 +57,9 @@ export async function uploadPDF(file) {
   });
 }
 
-/* ===========================================================
+/* ==========================================================
    Load Website
-=========================================================== */
+========================================================== */
 
 export async function loadWebsite(url) {
   return apiRequest("/website/load", {
@@ -59,15 +67,13 @@ export async function loadWebsite(url) {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      url,
-    }),
+    body: JSON.stringify({ url }),
   });
 }
 
-/* ===========================================================
+/* ==========================================================
    Chat
-=========================================================== */
+========================================================== */
 
 export async function sendMessage(
   question,
@@ -85,17 +91,17 @@ export async function sendMessage(
   });
 }
 
-/* ===========================================================
+/* ==========================================================
    Chat History
-=========================================================== */
+========================================================== */
 
 export async function getHistory() {
   return apiRequest("/history/");
 }
 
-/* ===========================================================
+/* ==========================================================
    Clear History
-=========================================================== */
+========================================================== */
 
 export async function clearHistory() {
   return apiRequest("/history/", {
@@ -103,9 +109,9 @@ export async function clearHistory() {
   });
 }
 
-/* ===========================================================
-   Export Chat History
-=========================================================== */
+/* ==========================================================
+   Export Chat
+========================================================== */
 
 export function exportHistory() {
   window.open(
@@ -114,9 +120,9 @@ export function exportHistory() {
   );
 }
 
-/* ===========================================================
-   Health Check (Optional)
-=========================================================== */
+/* ==========================================================
+   Health Check
+========================================================== */
 
 export async function healthCheck() {
   return apiRequest("/health");

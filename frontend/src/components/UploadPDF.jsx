@@ -23,6 +23,7 @@ function UploadPDF() {
 
     if (selected.type !== "application/pdf") {
       setError("Please select a PDF file.");
+      setSuccess("");
       setFile(null);
       return;
     }
@@ -40,12 +41,9 @@ function UploadPDF() {
       setError("");
       setSuccess("");
 
-      const response = await uploadPDF(file);
-
-      console.log(response);
+      await uploadPDF(file);
 
       setSuccess("PDF uploaded successfully!");
-
       setFile(null);
 
       if (inputRef.current) {
@@ -60,44 +58,43 @@ function UploadPDF() {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6">
+    <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-4">
 
       {/* Header */}
+      <div className="flex items-center gap-3 mb-4">
 
-      <div className="flex items-center gap-3 mb-5">
-
-        <div className="bg-blue-100 p-3 rounded-xl">
-          <FileText className="text-blue-600" size={24} />
+        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+          <FileText
+            className="text-blue-600"
+            size={22}
+          />
         </div>
 
         <div>
-
-          <h2 className="text-xl font-semibold">
+          <h2 className="text-lg font-semibold text-gray-800">
             Upload PDF
           </h2>
 
-          <p className="text-gray-500 text-sm">
-            Upload restaurant menus, policies or documents
+          <p className="text-sm text-gray-500">
+            Upload restaurant menus or documents
           </p>
-
         </div>
 
       </div>
 
       {/* Upload Area */}
-
-      <label className="border-2 border-dashed border-gray-300 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition">
+      <label className="border-2 border-dashed border-gray-300 rounded-xl h-36 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition">
 
         <Upload
-          className="text-blue-600 mb-3"
-          size={40}
+          className="text-blue-600 mb-2"
+          size={34}
         />
 
-        <p className="font-medium">
+        <p className="font-medium text-gray-800">
           Click to choose a PDF
         </p>
 
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-xs text-gray-500 mt-1">
           PDF files only
         </p>
 
@@ -112,54 +109,40 @@ function UploadPDF() {
       </label>
 
       {/* Selected File */}
-
       {file && (
-
-        <div className="mt-5 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
+        <div className="mt-3 flex items-center gap-2 rounded-lg bg-blue-50 border border-blue-200 p-2">
 
           <CheckCircle
-            className="text-green-600"
             size={18}
+            className="text-blue-600"
           />
 
-          <span className="text-green-700 text-sm">
+          <span className="text-sm text-blue-700 truncate">
             {file.name}
           </span>
 
         </div>
-
       )}
 
       {/* Success */}
-
       {success && (
-
-        <div className="mt-4 bg-green-100 text-green-700 border border-green-300 rounded-lg p-3 text-sm">
-
+        <div className="mt-3 rounded-lg bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-700">
           {success}
-
         </div>
-
       )}
 
       {/* Error */}
-
       {error && (
-
-        <div className="mt-4 bg-red-100 text-red-700 border border-red-300 rounded-lg p-3 text-sm">
-
+        <div className="mt-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
           {error}
-
         </div>
-
       )}
 
       {/* Upload Button */}
-
       <button
         onClick={handleUpload}
         disabled={!file || loading}
-        className={`mt-6 w-full py-3 rounded-xl font-semibold transition flex justify-center items-center gap-2 ${
+        className={`mt-4 w-full h-11 rounded-xl font-semibold flex items-center justify-center gap-2 transition ${
           !file || loading
             ? "bg-gray-300 text-gray-500 cursor-not-allowed"
             : "bg-blue-600 hover:bg-blue-700 text-white"
@@ -168,8 +151,8 @@ function UploadPDF() {
         {loading ? (
           <>
             <Loader2
-              size={18}
               className="animate-spin"
+              size={18}
             />
             Uploading...
           </>

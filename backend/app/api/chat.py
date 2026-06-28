@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+import random
 
 from app.services.memory_service import (
     get_website_retriever,
@@ -23,15 +24,91 @@ class ChatRequest(BaseModel):
     question: str
 
 
+# ==========================================
+# Greeting Words
+# ==========================================
+
+GREETINGS = {
+    "hi",
+    "hello",
+    "hey",
+    "hii",
+    "helo",
+    "good morning",
+    "good afternoon",
+    "good evening",
+}
+
+
+# ==========================================
+# Greeting Responses
+# ==========================================
+
+GREETING_MESSAGES = [
+    "👋 Welcome to Xotic Restaurant!\n\nHow can I help you today?",
+
+    "😊 Hi! Welcome to Xotic Restaurant.\n\nWhat would you like to know today?",
+
+    "🍽️ Welcome! I'm your Restaurant AI Assistant.\n\nFeel free to ask me about our menu, prices or restaurant.",
+
+    "👋 Hello there!\n\nI'm here to help you with our menu, timings, prices and restaurant information.",
+
+    "😊 Hi! Thanks for visiting Xotic Restaurant.\n\nHow may I assist you today?",
+]
+
+
 @router.post("/")
 async def chat(request: ChatRequest):
     """
-    Ask a question using the Website Knowledge Base,
-    PDF Knowledge Base, or both.
+    Restaurant AI Chat Endpoint
     """
 
     # ==========================================
-    # Retrieve Loaded Knowledge Bases
+    # Clean Question
+    # ==========================================
+
+    question = request.question.strip()
+
+    if not question:
+        raise HTTPException(
+            status_code=400,
+            detail="Question cannot be empty."
+        )
+
+    # ==========================================
+    # Greeting Handling
+    # ==========================================
+
+    if question.lower() in GREETINGS:
+
+        greeting_answer = random.choice(GREETING_MESSAGES)
+
+        save_chat(
+            question=question,
+            answer=greeting_answer
+        )
+
+        return {
+            "answer": greeting_answer,
+            "sources": [],
+            "confidence": "High",
+            "provider": "system",
+        }
+
+    # ==========================================
+    # Validate Provider
+    # ==========================================
+
+    provider = request.provider.lower()
+
+    if provider not in ["gemini", "groq"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Provider must be either 'gemini' or 'groq'."
+        )
+
+    # ==========================================
+    # Get Knowledge Bases
     # ==========================================
 
     website_retriever = get_website_retriever()
@@ -41,7 +118,7 @@ async def chat(request: ChatRequest):
     pdf_keyword_retriever = get_pdf_keyword_retriever()
 
     # ==========================================
-    # Ensure at least one knowledge base is loaded
+    # Ensure Knowledge Exists
     # ==========================================
 
     if (
@@ -56,25 +133,13 @@ async def chat(request: ChatRequest):
         )
 
     # ==========================================
-    # Validate LLM Provider
-    # ==========================================
-
-    provider = request.provider.lower()
-
-    if provider not in ["gemini", "groq"]:
-        raise HTTPException(
-            status_code=400,
-            detail="Provider must be either 'gemini' or 'groq'."
-        )
-
-    # ==========================================
-    # Get Conversation Memory
+    # Conversation History
     # ==========================================
 
     conversation_history = get_recent_chat_history(limit=5)
 
     # ==========================================
-    # Generate Answer
+    # Ask RAG
     # ==========================================
 
     response = ask_question(
@@ -83,17 +148,26 @@ async def chat(request: ChatRequest):
         pdf_retriever=pdf_retriever,
         pdf_keyword_retriever=pdf_keyword_retriever,
         provider=provider,
-        question=request.question,
+        question=question,
         conversation_history=conversation_history,
     )
 
     # ==========================================
-    # Save Conversation
+    # Save Chat
     # ==========================================
 
     save_chat(
-        question=request.question,
+        question=question,
         answer=response["answer"]
     )
 
-    return response
+    # ==========================================
+    # Return Response
+    # ==========================================
+
+    return {
+        "answer": response["answer"],
+        "sources": response.get("sources", []),
+        "confidence": response.get("confidence", "High"),
+        "provider": provider,
+    }

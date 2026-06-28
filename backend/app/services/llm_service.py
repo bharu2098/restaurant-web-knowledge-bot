@@ -12,7 +12,7 @@ def generate_answer(
     Route the request to the selected LLM provider.
     """
 
-    provider = provider.lower()
+    provider = provider.strip().lower()
 
     if provider == "gemini":
         return gemini_generate(
@@ -21,11 +21,13 @@ def generate_answer(
             conversation_history=conversation_history,
         )
 
-    elif provider == "groq":
+    if provider == "groq":
         return groq_generate(
             context=context,
             question=question,
             conversation_history=conversation_history,
         )
 
-    raise ValueError(f"Unsupported LLM provider: {provider}")
+    raise ValueError(
+        f"Unsupported LLM provider: {provider}. Supported providers are: gemini, groq."
+    )

@@ -23,12 +23,9 @@ function WebsiteLoader() {
       setError("");
       setSuccess("");
 
-      const response = await loadWebsite(url);
-
-      console.log(response);
+      await loadWebsite(url);
 
       setSuccess("Website loaded successfully!");
-
       setUrl("");
     } catch (err) {
       console.error(err);
@@ -39,17 +36,20 @@ function WebsiteLoader() {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6">
+    <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-4">
 
       {/* Header */}
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-3 mb-4">
 
-        <div className="bg-green-100 p-3 rounded-xl">
-          <Globe className="text-green-600" size={24} />
+        <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+          <Globe
+            className="text-green-600"
+            size={22}
+          />
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-800">
+          <h2 className="text-lg font-semibold text-gray-800">
             Load Website
           </h2>
 
@@ -73,18 +73,21 @@ function WebsiteLoader() {
           placeholder="https://restaurant.com"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+          className="w-full h-12 pl-12 pr-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
         />
 
       </div>
 
       {/* Success */}
       {success && (
-        <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
+        <div className="mt-3 flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 p-2">
 
-          <CheckCircle className="text-green-600" size={18} />
+          <CheckCircle
+            className="text-green-600"
+            size={18}
+          />
 
-          <span className="text-green-700 text-sm">
+          <span className="text-sm text-green-700">
             {success}
           </span>
 
@@ -93,11 +96,14 @@ function WebsiteLoader() {
 
       {/* Error */}
       {error && (
-        <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
+        <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 p-2">
 
-          <AlertCircle className="text-red-600" size={18} />
+          <AlertCircle
+            className="text-red-600"
+            size={18}
+          />
 
-          <span className="text-red-700 text-sm">
+          <span className="text-sm text-red-700">
             {error}
           </span>
 
@@ -108,7 +114,7 @@ function WebsiteLoader() {
       <button
         onClick={handleLoadWebsite}
         disabled={!url || loading}
-        className={`mt-6 w-full py-3 rounded-xl font-semibold transition flex items-center justify-center gap-2 ${
+        className={`mt-4 w-full h-11 rounded-xl font-semibold transition flex items-center justify-center gap-2 ${
           url && !loading
             ? "bg-green-600 hover:bg-green-700 text-white"
             : "bg-gray-300 text-gray-500 cursor-not-allowed"

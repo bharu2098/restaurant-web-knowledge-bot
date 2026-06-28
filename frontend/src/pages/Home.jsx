@@ -1,104 +1,48 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 
-import Sidebar from "../components/Sidebar";
-import Header from "../components/Header";
-import UploadPDF from "../components/UploadPDF";
-import WebsiteLoader from "../components/WebsiteLoader";
-import ChatWidget from "../components/ChatWidget";
-import ChatInput from "../components/ChatInput";
-import HistoryPanel from "../components/HistoryPanel";
+import Navbar from "../components/Navbar";
+import Hero from "../components/Hero";
+import About from "../components/About";
+import Menu from "../components/Menu";
+import Gallery from "../components/Gallery";
+import Contact from "../components/Contact";
 import Footer from "../components/Footer";
 
+import FloatingChatButton from "../components/FloatingChatButton";
+import CustomerChat from "../components/CustomerChat";
+
 function Home() {
-  const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
-
-  // Section refs
-  const uploadRef = useRef(null);
-  const websiteRef = useRef(null);
-  const chatRef = useRef(null);
-
-  const scrollToSection = (section) => {
-    if (section === "upload") {
-      uploadRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }
-
-    if (section === "website") {
-      websiteRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }
-
-    if (section === "chat") {
-      chatRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }
-  };
+  const [chatOpen, setChatOpen] = useState(false);
 
   return (
-    <div className="h-screen bg-gray-100 flex">
+    <div className="bg-gray-50 min-h-screen">
 
-      <Sidebar
-        setShowHistory={setShowHistory}
-        scrollToSection={scrollToSection}
+      <Navbar
+        onOpenChat={() => setChatOpen(true)}
       />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <Hero
+        onOpenChat={() => setChatOpen(true)}
+      />
 
-        <Header />
+      <About />
 
-        <main className="flex-1 overflow-y-auto p-6">
+      <Menu />
 
-          {/* Upload + Website */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <Gallery />
 
-            <div ref={uploadRef}>
-              <UploadPDF />
-            </div>
+      <Contact />
 
-            <div ref={websiteRef}>
-              <WebsiteLoader />
-            </div>
+      <Footer />
 
-          </div>
+      <FloatingChatButton
+        onClick={() => setChatOpen(true)}
+      />
 
-          {/* Chat */}
-          <div
-            ref={chatRef}
-            className="flex flex-col h-[calc(100vh-340px)]"
-          >
-
-            <ChatWidget
-              messages={messages}
-              loading={loading}
-            />
-
-            <ChatInput
-              messages={messages}
-              setMessages={setMessages}
-              setLoading={setLoading}
-            />
-
-          </div>
-
-        </main>
-
-        <Footer />
-
-      </div>
-
-      {showHistory && (
-        <HistoryPanel
-          setShowHistory={setShowHistory}
-        />
-      )}
+      <CustomerChat
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+      />
 
     </div>
   );

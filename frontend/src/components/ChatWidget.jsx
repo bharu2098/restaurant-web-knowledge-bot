@@ -15,7 +15,7 @@ function ChatWidget({ messages, loading = false }) {
   }, [messages, loading]);
 
   return (
-    <div className="flex-1 bg-white rounded-2xl border border-gray-200 shadow-md overflow-hidden">
+    <div className="flex flex-col flex-1 bg-white rounded-2xl border border-gray-200 shadow-md overflow-hidden">
 
       {/* Header */}
       <div className="border-b border-gray-200 px-6 py-4">
@@ -29,7 +29,7 @@ function ChatWidget({ messages, loading = false }) {
       </div>
 
       {/* Messages */}
-      <div className="h-[500px] overflow-y-auto p-6 bg-gray-50">
+      <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
 
         {messages.length === 0 && !loading ? (
           <SuggestedQuestions />
