@@ -1,124 +1,44 @@
-import re
 from typing import Dict
+import re
 
 
 # ============================================================
-# Restaurant Profile Extraction
+# Normalize Restaurant Name
 # ============================================================
 
-def extract_restaurant_profile(text: str) -> Dict:
+def normalize_name(name: str) -> str:
     """
-    Extract important restaurant information
-    from PDF or Website text.
+    Normalize restaurant names for comparison.
+
+    Examples:
+    Paradise Food Court -> paradise
+    Paradise Restaurant -> paradise
+    Paradise Biryani -> paradise
     """
 
-    profile = {
-        "restaurant_name": "",
-        "phone": "",
-        "email": "",
-        "address": "",
-        "timings": "",
-        "menu": {}
-    }
+    if not name:
+        return ""
 
-    if not text:
-        return profile
+    name = name.lower()
 
-    lines = [
-        line.strip()
-        for line in text.splitlines()
-        if line.strip()
+    words_to_remove = [
+        "restaurant",
+        "restaurants",
+        "food",
+        "food court",
+        "biryani",
+        "hotel",
+        "cafe",
+        "kitchen",
     ]
 
-    # --------------------------------------------------------
-    # Restaurant Name
-    # --------------------------------------------------------
+    for word in words_to_remove:
+        name = name.replace(word, "")
 
-    if lines:
-        profile["restaurant_name"] = lines[0]
+    name = re.sub(r"[^a-z0-9 ]", "", name)
+    name = re.sub(r"\s+", " ", name)
 
-    # --------------------------------------------------------
-    # Phone Number
-    # --------------------------------------------------------
-
-    phone = re.search(
-        r'(\+?\d[\d\s-]{8,15})',
-        text
-    )
-
-    if phone:
-        profile["phone"] = phone.group(1).strip()
-
-    # --------------------------------------------------------
-    # Email
-    # --------------------------------------------------------
-
-    email = re.search(
-        r'[\w\.-]+@[\w\.-]+\.\w+',
-        text
-    )
-
-    if email:
-        profile["email"] = email.group(0)
-
-    # --------------------------------------------------------
-    # Timings
-    # --------------------------------------------------------
-
-    timing = re.search(
-        r'(\d{1,2}\s?(AM|PM)\s?[-–]\s?\d{1,2}\s?(AM|PM))',
-        text,
-        re.IGNORECASE
-    )
-
-    if timing:
-        profile["timings"] = timing.group(1)
-
-    # --------------------------------------------------------
-    # Address
-    # --------------------------------------------------------
-
-    for line in lines:
-
-        if any(
-            word in line.lower()
-            for word in [
-                "road",
-                "street",
-                "lane",
-                "colony",
-                "city",
-                "hyderabad",
-                "bangalore",
-                "mumbai",
-                "address"
-            ]
-        ):
-            profile["address"] = line
-            break
-
-    # --------------------------------------------------------
-    # Menu Items
-    # --------------------------------------------------------
-
-    menu_pattern = re.compile(
-        r'(.+?)\s+(₹|Rs\.?)?\s*(\d+)',
-        re.IGNORECASE
-    )
-
-    for line in lines:
-
-        match = menu_pattern.search(line)
-
-        if match:
-
-            item = match.group(1).strip()
-
-            price = int(match.group(3))
-
-            profile["menu"][item] = price
-
-    return profile
+    return name.strip()
 
 
 # ============================================================
@@ -130,30 +50,57 @@ def validate_restaurant_data(
     website_profile: Dict,
 ):
     """
-    PDF is treated as the latest source of truth.
-
-    Every important field must match.
+    Validate that Website and PDF belong to the same restaurant.
     """
 
     conflicts = []
 
+    pdf_name = normalize_name(
+        pdf_profile.get("restaurant_name", "")
+    )
+
+    website_name = normalize_name(
+        website_profile.get("restaurant_name", "")
+    )
+
     # --------------------------------------------------------
-    # Restaurant Name
+    # Restaurant Name Missing
+    # --------------------------------------------------------
+
+    if not pdf_name:
+        return {
+            "valid": False,
+            "message": "Restaurant name could not be extracted from the PDF.",
+            "conflicts": ["Missing restaurant name in PDF"],
+        }
+
+    if not website_name:
+        return {
+            "valid": False,
+            "message": "Restaurant name could not be extracted from the Website.",
+            "conflicts": ["Missing restaurant name in Website"],
+        }
+
+    # --------------------------------------------------------
+    # Restaurant Name Validation
     # --------------------------------------------------------
 
     if (
-        pdf_profile["restaurant_name"].lower()
-        != website_profile["restaurant_name"].lower()
+        pdf_name != website_name
+        and pdf_name not in website_name
+        and website_name not in pdf_name
     ):
-        conflicts.append("Restaurant name mismatch")
+        conflicts.append(
+            f"Restaurant name mismatch ({pdf_name} vs {website_name})"
+        )
 
     # --------------------------------------------------------
     # Phone
     # --------------------------------------------------------
 
     if (
-        pdf_profile["phone"]
-        and website_profile["phone"]
+        pdf_profile.get("phone")
+        and website_profile.get("phone")
         and pdf_profile["phone"] != website_profile["phone"]
     ):
         conflicts.append("Phone number mismatch")
@@ -163,8 +110,8 @@ def validate_restaurant_data(
     # --------------------------------------------------------
 
     if (
-        pdf_profile["email"]
-        and website_profile["email"]
+        pdf_profile.get("email")
+        and website_profile.get("email")
         and pdf_profile["email"] != website_profile["email"]
     ):
         conflicts.append("Email mismatch")
@@ -174,10 +121,10 @@ def validate_restaurant_data(
     # --------------------------------------------------------
 
     if (
-        pdf_profile["address"]
-        and website_profile["address"]
-        and pdf_profile["address"].lower()
-        != website_profile["address"].lower()
+        pdf_profile.get("address")
+        and website_profile.get("address")
+        and pdf_profile["address"].strip().lower()
+        != website_profile["address"].strip().lower()
     ):
         conflicts.append("Restaurant address mismatch")
 
@@ -186,47 +133,21 @@ def validate_restaurant_data(
     # --------------------------------------------------------
 
     if (
-        pdf_profile["timings"]
-        and website_profile["timings"]
-        and pdf_profile["timings"].lower()
-        != website_profile["timings"].lower()
+        pdf_profile.get("timings")
+        and website_profile.get("timings")
+        and pdf_profile["timings"].strip().lower()
+        != website_profile["timings"].strip().lower()
     ):
         conflicts.append("Restaurant timings mismatch")
-
-    # --------------------------------------------------------
-    # Menu Items & Prices
-    # --------------------------------------------------------
-
-    pdf_menu = pdf_profile["menu"]
-    website_menu = website_profile["menu"]
-
-    for item, pdf_price in pdf_menu.items():
-
-        if item not in website_menu:
-
-            conflicts.append(
-                f"Menu item missing on website: {item}"
-            )
-
-            continue
-
-        if website_menu[item] != pdf_price:
-
-            conflicts.append(
-                f"Price mismatch for '{item}' "
-                f"(PDF: ₹{pdf_price}, Website: ₹{website_menu[item]})"
-            )
 
     # --------------------------------------------------------
     # Final Result
     # --------------------------------------------------------
 
     if conflicts:
-
         return {
             "valid": False,
-            "message":
-                "Restaurant website and latest uploaded menu PDF are not synchronized.",
+            "message": "Restaurant website and uploaded menu PDF do not belong to the same restaurant.",
             "conflicts": conflicts,
         }
 

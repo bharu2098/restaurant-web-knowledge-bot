@@ -3,11 +3,11 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 def split_documents(documents):
     """
-    Split LangChain documents into smaller chunks for RAG.
+    Split LangChain documents into optimized chunks for RAG.
     """
 
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
+        chunk_size=2000,
         chunk_overlap=200,
         separators=[
             "\n\n",

@@ -54,6 +54,7 @@ website_text: str = ""
 
 pdf_profile: dict = {}
 website_profile: dict = {}
+merged_profile: dict = {}
 
 # ============================================================
 # Verification
@@ -165,7 +166,6 @@ def set_website_restaurant_name(name: str):
 def get_website_restaurant_name():
     return website_restaurant_name
 
-
 # ============================================================
 # Raw PDF Text
 # ============================================================
@@ -216,7 +216,17 @@ def set_website_profile(profile: dict):
 
 def get_website_profile():
     return website_profile
+# ============================================================
+# Merged Restaurant Profile
+# ============================================================
 
+def set_merged_profile(profile: dict):
+    global merged_profile
+    merged_profile = profile
+
+
+def get_merged_profile():
+    return merged_profile
 
 # ============================================================
 # Restaurant Verification
@@ -254,6 +264,8 @@ def clear_restaurant_information():
     global pdf_text
     global website_text
     global pdf_profile
+    global merged_profile
+
     global website_profile
     global restaurant_verified
     global latest_pdf_filename
@@ -266,6 +278,7 @@ def clear_restaurant_information():
 
     pdf_profile = {}
     website_profile = {}
+    merged_profile = {}
 
     restaurant_verified = False
     latest_pdf_filename = None

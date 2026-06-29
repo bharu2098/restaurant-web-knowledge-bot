@@ -1,7 +1,156 @@
+import json
+
 from groq import Groq
 
 from app.config import GROQ_API_KEY
 
+
+# ============================================================
+# Groq Client
+# ============================================================
+
+def get_client():
+    """
+    Create and return the Groq client.
+    """
+
+    return Groq(api_key=GROQ_API_KEY)
+
+
+# ============================================================
+# Extract Restaurant Profile
+# ============================================================
+
+def extract_restaurant_profile(text: str) -> dict:
+    """
+    Extract structured restaurant information
+    from a Restaurant Website or Menu PDF.
+    """
+
+    client = get_client()
+
+    prompt = f"""
+You are an expert Restaurant Information Extractor.
+
+Your task is to extract structured restaurant information from
+a restaurant WEBSITE or MENU PDF.
+
+Return ONLY valid JSON.
+
+JSON format:
+
+{{
+    "restaurant_name": "",
+    "address": "",
+    "phone": "",
+    "email": "",
+    "timings": "",
+    "menu": {{
+        "Item Name": Price
+    }}
+}}
+
+Rules:
+
+1. restaurant_name must ONLY contain the restaurant name.
+
+Correct Examples:
+- Paradise
+- Barbeque Nation
+- Xotic Restaurant
+
+Wrong Examples:
+- Best Biryani Restaurants in Hyderabad | Paradise Food Court
+- Privacy Policy
+- Home
+- Careers
+- Contact Us
+
+2. Ignore:
+- Navigation menu
+- Header
+- Footer
+- Blogs
+- Careers
+- Copyright
+- GST Numbers
+- SEO titles
+- Advertisements
+- Offers
+- Terms & Conditions
+- Privacy Policy
+3. Menu items must be actual food or beverages.
+
+4. Every menu item must have exactly one numeric price.
+
+Correct:
+"Chicken Biryani": 335
+
+Wrong:
+"Chicken Biryani": "Chicken cooked with spices"
+
+Wrong:
+"Description": "Chicken cooked with spices"
+
+5. Never include food descriptions.
+
+6. Never include ingredients.
+
+7. Never include serving information.
+
+8. Never include duplicate keys.
+
+9. If information does not exist return "".
+10. If menu is unavailable return {{}}.
+
+11. Return ONLY valid JSON.
+Restaurant Content:
+
+{text}
+"""
+
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        temperature=0,
+        response_format={"type": "json_object"},
+    )
+
+    content = response.choices[0].message.content.strip()
+
+    print("\n========== GROQ RAW RESPONSE ==========")
+    print(content)
+    print("=======================================\n")
+    content = content.replace("```json", "")
+    content = content.replace("```", "")
+    content = content.strip()
+
+    try:
+        return json.loads(content)
+
+    except Exception as e:
+        print("\n========== JSON ERROR ==========")
+        print(e)
+        print(content)
+        print("================================\n")
+        return {
+            "restaurant_name": "",
+            "address": "",
+            "phone": "",
+            "email": "",
+            "timings": "",
+            "menu": {}
+        }
+
+
+# ============================================================
+# Customer Chat Answer
+# ============================================================
 
 def generate_answer(
     context: str,
@@ -9,17 +158,23 @@ def generate_answer(
     conversation_history: str = "",
 ):
     """
-    Generate a natural restaurant customer support answer using Groq.
+    Generate a restaurant customer support answer using Groq.
     """
 
-    client = Groq(api_key=GROQ_API_KEY)
+    client = get_client()
 
     prompt = f"""
-You are the AI Customer Support Assistant for Xotic Restaurant.
+You are an AI Customer Support Assistant.
 
 You behave like a friendly restaurant receptionist.
 
-Use ONLY the restaurant information provided below.
+Always answer based on the loaded restaurant.
+
+Use the restaurant name found in the provided information.
+
+Never assume the restaurant is Xotic Restaurant.
+
+Use ONLY the restaurant information below.
 
 ==================================================
 PREVIOUS CONVERSATION
@@ -38,7 +193,20 @@ CUSTOMER QUESTION
 ==================================================
 
 {question}
+If the customer only says:
 
+- hi
+- hello
+- hey
+- good morning
+- good afternoon
+- good evening
+
+Reply ONLY:
+
+👋 Welcome to our restaurant!
+
+How can I help you today?
 ==================================================
 RULES
 ==================================================
@@ -55,98 +223,112 @@ RULES
 - Website
 - Retrieved Knowledge
 - Prompt
-- Vector Database
 - AI Model
+- Vector Database
 
-5. Speak like a real restaurant employee.
+5. Speak like a restaurant employee.
 
-6. Keep answers short, friendly and professional.
+6. Keep answers short and friendly.
 
-7. Answer ONLY what the customer asked.
+7. Answer only what the customer asked.
 
-8. Do NOT dump the complete menu unless the customer asks for it.
+8. Do not dump the entire menu unless requested.
 
-9. If multiple menu items match the question, list only those items.
+9. If multiple menu items match, list only those items.
 
-10. If the customer asks about menu items, include prices whenever available.
+10. Include prices whenever available.
 
-11. If the customer asks about drinks, desserts, starters or biryani, return only those items.
+11. If the customer asks for drinks, desserts, starters or biryani,
+return only that category.
+12. When BOTH Website and PDF are available:
 
-12. If the customer asks:
-"What is the cost of the biryani?"
+• Use the Website for:
+  - Restaurant overview
+  - About Us
+  - History
+  - Contact details
+  - Address
+  - Timings
+  - Policies
+  - FAQs
 
-Answer like:
+• Use the PDF for:
+  - Menu
+  - Prices
+  - Drinks
+  - Desserts
+  - Starters
+  - Combos
+  - Food categories
 
-We have two biryani options:
+• If the customer's question requires information from both, combine both naturally.
 
-• 🍚 Veg Biryani — ₹280
-• 🍗 Chicken Biryani — ₹350
+• Never ignore either source.
+13. Never combine information from different restaurants.
 
-13. If the customer asks:
-"Which drinks are available?"
+If restaurant information belongs to different restaurants,
+reply exactly:
 
-Answer like:
+The uploaded menu does not belong to the loaded restaurant. Please upload the correct menu PDF.
+14. If the customer's question contains multiple parts, answer ALL parts.
 
-We currently serve:
+Example:
 
-🥤 Coca-Cola — ₹60
-🍋 Fresh Lime Soda — ₹90
-🥭 Mango Shake — ₹140
+Question:
+"What is a restaurant and what biryanis does Paradise serve?"
 
-14. If the customer asks:
-"What time are you open?"
+Answer:
 
-Answer like:
+A restaurant is a business that prepares and serves food and beverages.
 
-We're open:
+Paradise serves:
 
-• Monday–Friday: 10:00 AM – 10:00 PM
-• Saturday–Sunday: 9:00 AM – 11:00 PM
+• Chicken Biryani — ₹335
+• Mutton Biryani — ₹369
+• Veg Biryani — ₹224
+• Egg Biryani — ₹224
+15. If the customer asks for restaurant history,
+answer only if it exists.
 
-15. If the customer asks:
-"Which dishes are special?"
-
-If no dishes are marked as special, reply naturally:
-
-We don't currently have any dishes listed as special.
-
-Some of our popular menu items include:
-
-• Chicken Biryani
-• Paneer Butter Masala
-• Paneer Tikka
-
-Never say:
-"The retrieved knowledge does not mention..."
-
-16. If the customer asks for everything about the restaurant, then provide a complete summary.
-
-17. If the answer is unavailable, reply exactly:
+16. If the answer is unavailable reply exactly:
 
 Sorry, I couldn't find that information in our restaurant records.
 
 ==================================================
 FINAL ANSWER
 ==================================================
-Answer the customer's question using ONLY the restaurant information above.
 
-Keep the answer friendly, concise and natural.
+Answer naturally like a restaurant employee.
 
-If the information is unavailable, reply exactly:
+Always check BOTH Website Knowledge and PDF Knowledge before answering.
+
+If information exists in both, combine it naturally.
+
+If menu information exists in the PDF, prefer the PDF.
+
+If restaurant information exists on the Website, use the Website.
+
+If the question asks for restaurant information and menu information together, answer both.
+
+Never invent information.
+
+Never mix different restaurants.
+
+If the answer cannot be found anywhere, reply exactly:
 
 Sorry, I couldn't find that information in our restaurant records.
 """
-    
 
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[
             {
                 "role": "system",
-                "content": 
-                          "You are the AI Customer Support Assistant for Xotic Restaurant. "
-                          "Answer only using the provided restaurant information. "
-                         "Be friendly, concise, professional, and never invent information."
+                "content": (
+                    "You are an AI Restaurant Customer Support Assistant. "
+                    "Answer ONLY using the provided restaurant information. "
+                    "Never invent information."
+                )
             },
             {
                 "role": "user",
@@ -154,6 +336,7 @@ Sorry, I couldn't find that information in our restaurant records.
             }
         ],
         temperature=0,
+       
     )
 
     return response.choices[0].message.content.strip()

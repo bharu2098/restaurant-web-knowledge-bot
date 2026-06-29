@@ -7,6 +7,8 @@ from app.services.memory_service import (
     get_website_keyword_retriever,
     get_pdf_retriever,
     get_pdf_keyword_retriever,
+    get_pdf_profile,
+    is_restaurant_verified,
 )
 
 from app.services.chat_service import (
@@ -131,6 +133,65 @@ async def chat(request: ChatRequest):
             status_code=400,
             detail="Please load a website or upload a PDF first."
         )
+    # ==========================================
+    # Restaurant Validation
+    # ==========================================
+
+    if website_retriever is not None and pdf_retriever is not None:
+        if not is_restaurant_verified():
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                "The uploaded menu PDF does not belong to the loaded restaurant."
+                )
+           )
+        
+
+    # ==========================================
+    # Exact Menu Lookup
+    # ==========================================
+
+    # ==========================================
+    # Exact Menu Lookup
+    # ==========================================
+
+    pdf_profile = get_pdf_profile()
+
+    if pdf_profile and "menu" in pdf_profile:
+
+      menu = pdf_profile["menu"]
+      question_lower = question.lower()
+
+      for item, price in menu.items():
+
+         if item.lower() in question_lower:
+
+            if (
+                "price" in question_lower
+                or "cost" in question_lower
+                or "how much" in question_lower
+            ):
+                return {
+                    "answer": f"The price of {item} is {price}.",
+                    "sources": [],
+                    "confidence": "High",
+                    "provider": provider,
+                }
+
+            if (
+                "have" in question_lower
+                or "available" in question_lower
+                or "serve" in question_lower
+                or "do you have" in question_lower
+            ):
+                return {
+                    "answer": f"Yes, we serve {item}. It costs {price}.",
+                    "sources": [],
+                    "confidence": "High",
+                    "provider": provider,
+                }
+
+
 
     # ==========================================
     # Conversation History

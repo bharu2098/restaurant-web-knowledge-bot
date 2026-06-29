@@ -77,7 +77,7 @@ export async function loadWebsite(url) {
 
 export async function sendMessage(
   question,
-  provider = "gemini"
+  provider = "groq"
 ) {
   return apiRequest("/chat/", {
     method: "POST",
