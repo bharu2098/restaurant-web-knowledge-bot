@@ -96,7 +96,8 @@ function Contact() {
                 </h3>
 
                 <p className="text-gray-600">
-                  Mon - Sun : 10:00 AM - 11:00 PM
+                  Mon - fri: 10:00 AM - 10:00 PM
+                  sat- sun:  10:00 AM - 11:00 PM
                 </p>
 
               </div>

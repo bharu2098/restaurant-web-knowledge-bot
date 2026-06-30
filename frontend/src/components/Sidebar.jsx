@@ -1,7 +1,4 @@
 import {
-  MessageSquare,
-  FileText,
-  Globe,
   History,
   Download,
   CheckCircle,
@@ -11,7 +8,6 @@ import { exportHistory } from "../services/api";
 
 function Sidebar({
   setShowHistory,
-  scrollToSection,
 }) {
   const handleExport = () => {
     exportHistory();
@@ -38,33 +34,6 @@ function Sidebar({
         {/* Navigation */}
         <nav className="mt-6 px-4 space-y-2">
 
-          {/* Chat */}
-          <button
-            onClick={() => scrollToSection("chat")}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 transition"
-          >
-            <MessageSquare size={20} />
-            <span>Chat</span>
-          </button>
-
-          {/* Upload PDF */}
-          <button
-            onClick={() => scrollToSection("upload")}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition"
-          >
-            <FileText size={20} />
-            <span>Upload PDF</span>
-          </button>
-
-          {/* Website */}
-          <button
-            onClick={() => scrollToSection("website")}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition"
-          >
-            <Globe size={20} />
-            <span>Load Website</span>
-          </button>
-
           {/* History */}
           <button
             onClick={() => setShowHistory(true)}
@@ -74,7 +43,7 @@ function Sidebar({
             <span>History</span>
           </button>
 
-          {/* Export */}
+          {/* Export Chat */}
           <button
             onClick={handleExport}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition"

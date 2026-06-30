@@ -7,12 +7,13 @@ def create_vector_store(
     chunks,
     persist_directory: str,
     collection_name: str,
+    provider: str = "gemini",
 ):
     """
     Create a ChromaDB vector store.
     """
 
-    embeddings = get_embedding_model()
+    embeddings = get_embedding_model(provider)
 
     vector_store = Chroma.from_documents(
         documents=chunks,
@@ -21,8 +22,6 @@ def create_vector_store(
         collection_name=collection_name,
     )
 
-    print(
-        f"✅ Stored {len(chunks)} chunks in {persist_directory}"
-    )
+    print(f"✅ Stored {len(chunks)} chunks in {persist_directory}")
 
     return vector_store

@@ -1,19 +1,16 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import traceback
+
 from app.rag.website_loader import load_website
 from app.rag.rag_pipeline import build_website_rag
 
 from app.services.llm_service import extract_restaurant_profile
 
-
-
 from app.services.memory_service import (
-
     set_website_text,
     set_website_profile,
     set_website_restaurant_name,
-
     set_website_retriever,
     set_website_keyword_retriever,
 )
@@ -23,6 +20,7 @@ router = APIRouter()
 
 class WebsiteRequest(BaseModel):
     url: str
+    provider: str = "groq"     # Supports both groq and gemini
 
 
 @router.post("/load")
@@ -32,12 +30,17 @@ async def load_website_endpoint(request: WebsiteRequest):
     """
 
     try:
-
         # =====================================================
-        # Clear previous restaurant information
+        # Validate Provider
         # =====================================================
 
+        provider = request.provider.lower().strip()
 
+        if provider not in ["groq", "gemini"]:
+            raise HTTPException(
+               status_code=400,
+               detail="Provider must be either 'groq' or 'gemini'."
+            )
         # =====================================================
         # Load Website
         # =====================================================
@@ -52,7 +55,7 @@ async def load_website_endpoint(request: WebsiteRequest):
         print(f"📄 Loaded Documents: {len(documents)}")
 
         # =====================================================
-        # Merge Website Text
+        # Merge Complete Website
         # =====================================================
 
         website_text = "\n\n".join(
@@ -60,25 +63,31 @@ async def load_website_endpoint(request: WebsiteRequest):
             for doc in documents
         )
 
-        # Save website text
+        # Save COMPLETE website for RAG
         set_website_text(website_text)
 
         # =====================================================
         # Extract Restaurant Profile
         # =====================================================
+        # Don't send the entire website to the LLM.
+        # Use only a small sample for profile extraction.
+
+        profile_text = website_text[:8000]
 
         website_profile = extract_restaurant_profile(
-            website_text,
-            provider = "groq"
+            profile_text,
+            provider=provider,
         )
 
         print("\n🍽 Website Profile")
         print(website_profile)
 
+        # =====================================================
         # Save Profile
+        # =====================================================
+
         set_website_profile(website_profile)
 
-        # Save Restaurant Name
         set_website_restaurant_name(
             website_profile.get(
                 "restaurant_name",
@@ -87,11 +96,12 @@ async def load_website_endpoint(request: WebsiteRequest):
         )
 
         # =====================================================
-        # Build Website RAG
+        # Build Complete Website RAG
         # =====================================================
 
         vector_retriever, keyword_retriever = build_website_rag(
-            request.url
+            request.url,
+            provider=provider,
         )
 
         # =====================================================
@@ -113,10 +123,12 @@ async def load_website_endpoint(request: WebsiteRequest):
             "message": "Website indexed successfully.",
             "restaurant_name": website_profile.get(
                 "restaurant_name",
-                "Unknown"
+                "Unknown",
             ),
             "url": request.url,
-            "knowledge_base": "Website"
+            "provider":provider,
+            "knowledge_base": "Website",
+            "pages_loaded": len(documents),
         }
 
     except Exception as e:
@@ -128,5 +140,5 @@ async def load_website_endpoint(request: WebsiteRequest):
 
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to load website: {str(e)}"
-    )
+            detail=f"Failed to load website: {str(e)}",
+        )

@@ -1,7 +1,6 @@
 from pathlib import Path
 import shutil
-
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 
 from app.rag.pdf_loader import load_pdf
 from app.rag.text_splitter import split_documents
@@ -35,14 +34,28 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 
 
 @router.post("/")
-async def upload_pdf(file: UploadFile = File(...)):
+async def upload_pdf(
+    file: UploadFile = File(...),
+    provider: str = Form("groq"),
+    
+):
     """
     Upload a restaurant menu PDF.
 
     The uploaded PDF is validated against the
     currently loaded restaurant website.
     """
+    # --------------------------------------------------------
+    # Validate Provider
+    # --------------------------------------------------------
+ 
+    provider = provider.lower().strip()
 
+    if provider not in ["groq", "gemini"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Provider must be either 'groq' or 'gemini'."
+        )
     # --------------------------------------------------------
     # Validate file
     # --------------------------------------------------------
@@ -87,7 +100,7 @@ async def upload_pdf(file: UploadFile = File(...)):
 
     pdf_profile = extract_restaurant_profile(
         pdf_text,
-        provider="groq"
+        provider=provider,
     )
 
     print("\n📄 PDF Profile")
@@ -191,14 +204,15 @@ async def upload_pdf(file: UploadFile = File(...)):
     return {
         "status": "success",
         "message": "PDF uploaded successfully.",
+        "provider": provider,
         "restaurant_name": pdf_profile.get(
-            "restaurant_name",
-            ""
-        ),
-        "verified": website_profile is not None,
-        "merged": website_profile is not None,
-        "knowledge_base": "PDF",
-        "filename": file.filename,
-        "pages": len(documents),
-        "chunks": len(chunks)
+        "restaurant_name",
+        ""
+      ),
+      "verified": website_profile is not None,
+      "merged": website_profile is not None,
+      "knowledge_base": "PDF",
+      "filename": file.filename,
+      "pages": len(documents),
+      "chunks": len(chunks),
     }

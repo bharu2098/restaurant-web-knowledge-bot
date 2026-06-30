@@ -1,3 +1,14 @@
+"""
+LLM Service
+
+Routes all LLM requests to the selected provider.
+
+Supported Providers
+-------------------
+- gemini
+- groq
+"""
+
 from app.services.gemini_service import (
     generate_answer as gemini_generate,
     extract_restaurant_profile as gemini_extract,
@@ -9,9 +20,39 @@ from app.services.groq_service import (
 )
 
 
-# ============================================================
-# Chat Answer
-# ============================================================
+# ==========================================================
+# Supported Providers
+# ==========================================================
+
+SUPPORTED_PROVIDERS = {
+    "gemini",
+    "groq",
+}
+
+
+# ==========================================================
+# Validate Provider
+# ==========================================================
+
+def validate_provider(provider: str) -> str:
+    """
+    Validate and normalize the provider name.
+    """
+
+    provider = provider.strip().lower()
+
+    if provider not in SUPPORTED_PROVIDERS:
+        raise ValueError(
+            f"Unsupported provider '{provider}'. "
+            f"Supported providers: {', '.join(SUPPORTED_PROVIDERS)}"
+        )
+
+    return provider
+
+
+# ==========================================================
+# Generate Chat Answer
+# ==========================================================
 
 def generate_answer(
     provider: str,
@@ -20,10 +61,24 @@ def generate_answer(
     conversation_history: str = "",
 ):
     """
-    Route the request to the selected LLM provider.
+    Generate a customer response using the selected LLM.
+
+    Parameters
+    ----------
+    provider : str
+        gemini or groq
+
+    context : str
+        Combined Website + PDF knowledge.
+
+    question : str
+        User question.
+
+    conversation_history : str
+        Previous conversation.
     """
 
-    provider = provider.strip().lower()
+    provider = validate_provider(provider)
 
     if provider == "gemini":
         return gemini_generate(
@@ -32,38 +87,31 @@ def generate_answer(
             conversation_history=conversation_history,
         )
 
-    if provider == "groq":
+    elif provider == "groq":
         return groq_generate(
             context=context,
             question=question,
             conversation_history=conversation_history,
         )
 
-    raise ValueError(
-        f"Unsupported provider: {provider}"
-    )
 
-
-# ============================================================
-# Restaurant Profile Extraction
-# ============================================================
+# ==========================================================
+# Extract Restaurant Profile
+# ==========================================================
 
 def extract_restaurant_profile(
     text: str,
     provider: str = "gemini",
 ):
     """
-    Extract restaurant information using the selected LLM.
+    Extract structured restaurant information
+    from website or PDF.
     """
 
-    provider = provider.strip().lower()
+    provider = validate_provider(provider)
 
     if provider == "gemini":
         return gemini_extract(text)
 
-    if provider == "groq":
+    elif provider == "groq":
         return groq_extract(text)
-
-    raise ValueError(
-        f"Unsupported provider: {provider}"
-    )

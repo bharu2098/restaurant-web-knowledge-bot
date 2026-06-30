@@ -11,10 +11,10 @@ async function apiRequest(endpoint, options = {}) {
   try {
     const response = await fetch(`${BASE_URL}${endpoint}`, options);
 
-    let data;
-
     const contentType =
       response.headers.get("content-type") || "";
+
+    let data;
 
     if (contentType.includes("application/json")) {
       data = await response.json();
@@ -34,6 +34,7 @@ async function apiRequest(endpoint, options = {}) {
     return data;
 
   } catch (error) {
+
     console.error("API Error:", error);
 
     return {
@@ -47,9 +48,14 @@ async function apiRequest(endpoint, options = {}) {
    Upload PDF
 ========================================================== */
 
-export async function uploadPDF(file) {
+export async function uploadPDF(
+  file,
+  provider = "groq"
+) {
   const formData = new FormData();
+
   formData.append("file", file);
+  formData.append("provider", provider);
 
   return apiRequest("/upload/", {
     method: "POST",
@@ -61,13 +67,19 @@ export async function uploadPDF(file) {
    Load Website
 ========================================================== */
 
-export async function loadWebsite(url) {
+export async function loadWebsite(
+  url,
+  provider = "groq"
+) {
   return apiRequest("/website/load", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ url }),
+    body: JSON.stringify({
+      url,
+      provider,
+    }),
   });
 }
 

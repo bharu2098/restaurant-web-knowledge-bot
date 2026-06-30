@@ -18,6 +18,7 @@ def get_llm():
         model="gemini-2.5-flash",
         google_api_key=GOOGLE_API_KEY,
         temperature=0,
+        max_retries=3,
     )
 
 
@@ -78,10 +79,27 @@ copyright text or long sentences as the restaurant name.
 4. Extract menu items only if they clearly belong to the restaurant menu.
 
 5. Prices must be integers.
+6. Every menu item must have exactly one numeric price.
 
-6. If information is missing, return an empty string.
+Correct:
+"Chicken Biryani": 335
 
-7. Return ONLY JSON.
+Wrong:
+"Chicken Biryani": "Chicken cooked with spices"
+
+7. Never include descriptions.
+
+8. Never include ingredients.
+
+9. Never include serving information.
+
+10. Never include duplicate JSON keys.
+
+11. Return ONLY valid JSON.
+
+12. If information is missing, return an empty string.
+
+13. Return ONLY JSON.
 
 Restaurant Content:
 
@@ -157,7 +175,7 @@ CUSTOMER QUESTION
 ==================================================
 
 {question}
-If the customer only says:
+ONLY greet the customer if the ENTIRE message is exactly one of:
 
 - hi
 - hello
@@ -171,6 +189,28 @@ Reply ONLY:
 👋 Welcome to our restaurant!
 
 How can I help you today?
+
+Do NOT greet for any other question.
+
+Examples:
+
+Question:
+What is Python?
+
+Answer:
+Sorry, I couldn't find that information in our restaurant records.
+
+Question:
+Who is the President of India?
+
+Answer:
+Sorry, I couldn't find that information in our restaurant records.
+
+Question:
+Do you sell laptops?
+
+Answer:
+Sorry, I couldn't find that information in our restaurant records.
 ==================================================
 RULES
 ==================================================
@@ -281,7 +321,34 @@ combine both naturally into one answer.
 
 • Never ignore either source.
 
-18. If the customer's question contains more than one part, answer ALL parts.
+18. If the customer asks multiple questions in one sentence (joined by "and", commas, or multiple question marks), answer EVERY part.
+
+Never skip any part.
+
+Answer in the same order as the questions.
+
+Example:
+
+Question:
+When was Paradise founded and what is the price of Chicken Biryani?
+
+Answer:
+
+• Paradise was founded in 1953.
+
+• Chicken Biryani costs ₹335.
+
+Question:
+What is Paradise famous for and what desserts do you serve?
+
+Answer:
+
+• Paradise is famous for its Hyderabadi Dum Biryani.
+
+• Desserts:
+- Double Ka Meetha — ₹95
+- Gulab Jamun — ₹75
+- Rasmalai — ₹95
 
 Example:
 
@@ -300,6 +367,99 @@ Paradise serves:
 • Egg Biryani — ₹224
 
 Never answer only one part of the question.
+19. If the customer asks to compare two menu items:
+
+Example:
+Which is cheaper, Veg Biryani or Egg Biryani?
+
+Compare their prices and clearly state which is cheaper.
+
+If both prices are equal, say they cost the same.
+
+------------------------------------------------
+
+20. If the customer asks for vegetarian biryanis:
+
+Return only biryani menu items that are vegetarian.
+
+Example:
+
+• Veg Biryani — ₹224
+
+Do not include paneer curries or other vegetarian dishes unless the customer asks for vegetarian dishes in general.
+
+------------------------------------------------
+
+21. If the customer asks:
+
+How many biryanis are available?
+
+Count every menu item containing the word "Biryani".
+
+Return both the number and the list.
+
+------------------------------------------------
+22. If the customer asks:
+
+- Under ₹300
+- Above ₹500
+- Between ₹200 and ₹400
+
+Always filter using the COMPLETE menu.
+
+Rules:
+
+• Above ₹X
+Return ONLY items whose price is strictly greater than X.
+
+• Under ₹X
+Return ONLY items whose price is strictly less than X.
+
+• Between ₹A and ₹B
+Return ONLY items whose price is between A and B (inclusive).
+
+Never include items outside the requested range.
+
+------------------------------------------------
+
+23. If the customer asks:
+
+Top five expensive dishes
+
+Sort the COMPLETE menu from highest to lowest price.
+
+------------------------------------------------
+
+24. If the customer asks:
+
+Cheapest dish
+
+Return ONLY the lowest priced dish.
+
+------------------------------------------------
+
+25. If the customer asks:
+
+Most expensive dish
+
+Return ONLY the highest priced dish.
+
+------------------------------------------------
+
+26. For comparison, counting, filtering, sorting and ranking questions, always analyze the COMPLETE menu before answering.
+27. Use third-person language when describing the restaurant.
+
+Correct:
+
+• Paradise is famous for...
+• Paradise offers...
+• Paradise serves...
+
+Avoid:
+
+• We are famous for...
+• Our restaurant...
+• We serve...
 ==================================================
 FINAL ANSWER
 ==================================================

@@ -10,7 +10,10 @@ from app.rag.keyword_retriever import create_keyword_retriever
 from app.services.llm_service import generate_answer
 
 
-def build_website_rag(url: str):
+def build_website_rag(
+    url: str,
+    provider: str = "gemini",
+):
     """
     Build the Website Knowledge Base and return both
     the Vector Retriever and BM25 Keyword Retriever.
@@ -31,20 +34,20 @@ def build_website_rag(url: str):
     # -----------------------------
     # Vector Retriever
     # -----------------------------
-  
-    website_db = Path("chroma_db_website")
+
+    website_db = Path(f"chroma_db_{provider}_website")
 
     if website_db.exists():
         shutil.rmtree(website_db)
 
     vector_store = create_vector_store(
         chunks,
-        persist_directory="chroma_db_website",
-        collection_name="website_collection",
-)
-
+        persist_directory=f"chroma_db_{provider}_website",
+        collection_name=f"{provider}_website_collection",
+        provider=provider,
+    )
     vector_retriever = create_retriever(vector_store)
-
+    
     # -----------------------------
     # BM25 Keyword Retriever
     # -----------------------------
@@ -111,7 +114,53 @@ def ask_question(
         retrieval_query += " starters appetizer spring rolls paneer tikka chicken wings"
 
     if "biryani" in retrieval_query:
-        retrieval_query += " veg biryani chicken biryani"
+     retrieval_query += (
+        " veg biryani "
+        "egg biryani "
+        "chicken biryani "
+        "mutton biryani "
+        "single chicken biryani "
+        "single mutton biryani "
+        "special biryani "
+        "special supreme chicken biryani "
+        "special supreme mutton biryani"
+    )
+    if any(
+    word in retrieval_query
+    for word in [
+        "compare",
+        "cheaper",
+        "costlier",
+        "expensive",
+        "price",
+        "cost",
+        "difference",
+    ]
+):
+     retrieval_query += (
+        " veg biryani "
+        "egg biryani "
+        "chicken biryani "
+        "mutton biryani "
+        "price menu"
+    )
+    if any(
+    word in retrieval_query
+    for word in [
+        "how many",
+        "count",
+        "number of",
+    ]
+):
+     retrieval_query += (
+        " menu "
+        "all dishes "
+        "all biryani "
+        "veg biryani "
+        "egg biryani "
+        "chicken biryani "
+        "mutton biryani "
+    )
 
     if "price" in retrieval_query or "cost" in retrieval_query:
         retrieval_query += " rs price cost"
@@ -126,7 +175,7 @@ def ask_question(
         retrieval_query += " popular menu signature recommended dishes"
 
     if "veg" in retrieval_query or "vegetarian" in retrieval_query:
-      retrieval_query += (
+        retrieval_query += (
         " vegetarian veg menu "
         "veg curries "
         "dal fry "
@@ -154,6 +203,15 @@ def ask_question(
     if "offer" in retrieval_query or "discount" in retrieval_query:
         retrieval_query += " offers discounts"
 
+    if "gift" in retrieval_query or "certificate" in retrieval_query:
+        retrieval_query += (
+        " gift certificate "
+        "gift certificates "
+        "gift card "
+        "voucher "
+        "corporate gift"
+    )
+
     if "pet" in retrieval_query:
         retrieval_query += " pets pet policy"
 
@@ -164,7 +222,42 @@ def ask_question(
         retrieval_query += " email contact"
 
     if "phone" in retrieval_query or "contact" in retrieval_query:
-        retrieval_query += " phone mobile contact"
+        retrieval_query += (
+        " phone "
+        "contact "
+        "mobile "
+        "telephone "
+        "customer care "
+        "call us"
+    )
+    if "branch" in retrieval_query:
+        retrieval_query += " branches outlets locations"
+
+    if "history" in retrieval_query:
+        retrieval_query += " history about founded origin"
+
+    if "owner" in retrieval_query:
+        retrieval_query += " founder owner management"
+
+    if "delivery" in retrieval_query:
+        retrieval_query += (
+        " delivery "
+        "home delivery "
+        "online ordering "
+        "online order "
+        "swiggy "
+        "zomato "
+        "takeaway"
+    )
+
+    if "booking" in retrieval_query:
+        retrieval_query += " reservation table booking"
+
+    if "franchise" in retrieval_query:
+        retrieval_query += " franchise company owned"
+ 
+    if "career" in retrieval_query or "job" in retrieval_query:
+        retrieval_query += " careers jobs recruitment"
     # ==========================================
     # Hybrid Retrieval (Website + PDF)
     # ==========================================
@@ -172,6 +265,7 @@ def ask_question(
     # PDF Vector Search
     if pdf_retriever:
      docs = pdf_retriever.invoke(retrieval_query)
+
      print(f"📄 PDF Vector Results: {len(docs)}")
      all_docs.extend(docs)
 
@@ -250,6 +344,20 @@ def ask_question(
     # ==========================================
     website_context = []
     pdf_context = []
+    from app.services.memory_service import get_pdf_profile
+
+    pdf_profile = get_pdf_profile()
+
+    if pdf_profile and pdf_profile.get("menu"):
+        menu_text = "\n".join(
+        f"{item} - ₹{price}"
+        for item, price in pdf_profile["menu"].items()
+    )
+
+        pdf_context.insert(
+            0,
+            f"COMPLETE MENU\n{menu_text}"
+    )
 
     for doc in unique_docs:
         source = doc.metadata.get("source", "")
@@ -260,7 +368,7 @@ def ask_question(
 
     # Keep fewer website chunks and more menu chunks
     website_context = website_context[:10]
-    pdf_context = pdf_context[:10]
+    pdf_context = pdf_context[:15]
 
     context = f"""
 ================ WEBSITE KNOWLEDGE ================
@@ -292,7 +400,7 @@ IMPORTANT:
         conversation_context += "\n========== PREVIOUS CONVERSATION =========="
         conversation_context += "\n\n"
 
-        for chat in conversation_history:
+        for chat in conversation_history[-3:]:
             conversation_context += (
                 f"\nUser: {chat['question']}\n"
                 f"Assistant: {chat['answer']}\n"
@@ -309,6 +417,7 @@ IMPORTANT:
         question=question,
         conversation_history=conversation_context,
     )
+    
 
     # ==========================================
     # Out-of-Domain Detection
