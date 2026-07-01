@@ -97,12 +97,21 @@ Wrong:
 
 11. Return ONLY valid JSON.
 
-12. If information is missing, return an empty string.
+12. If the provided content is NOT related to a restaurant, cafe, hotel, food court, menu, or food business, return exactly:
 
-13. Return ONLY JSON.
+{{
+    "restaurant_name": "",
+    "address": "",
+    "phone": "",
+    "email": "",
+    "timings": "",
+    "menu": {{}}
+}}
 
+Do not summarize the content.
+Do not explain why.
+Do not extract unrelated information.
 Restaurant Content:
-
 {text}
 """
 

@@ -104,8 +104,27 @@ Wrong:
 10. If menu is unavailable return {{}}.
 
 11. Return ONLY valid JSON.
-Restaurant Content:
 
+12. If information is missing, return an empty string.
+
+13. Return ONLY JSON.
+
+14. If the provided content is NOT related to a restaurant, cafe, hotel, food court, menu, or food business, return exactly:
+
+{{
+    "restaurant_name": "",
+    "address": "",
+    "phone": "",
+    "email": "",
+    "timings": "",
+    "menu": {{}}
+}}
+
+Do not summarize the content.
+Do not explain why.
+Do not extract unrelated information.
+
+Restaurant Content:
 {text}
 """
 

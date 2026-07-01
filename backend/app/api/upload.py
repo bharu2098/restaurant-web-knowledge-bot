@@ -91,7 +91,43 @@ async def upload_pdf(
         doc.page_content
         for doc in documents
     )
+    restaurant_keywords = [
+        "restaurant",
+        "menu",
+        "food",
+       "biryani",
+       "pizza",
+       "burger",
+       "dessert",
+      "desserts",
+       "drink",
+      "drinks",
+      "starter",
+      "starters",
+      "main course",
+      "rice",
+      "veg",
+      "vegetarian",
+      "paneer",
+      "chicken",
+      "mutton",
+      "fish",
+      "seafood",
+      "noodles",
+      "fried rice",
+      "ice cream",
+      "beverages",
+      "juice",
+      "mocktail",
+   ]
 
+    pdf_lower = pdf_text.lower()
+
+    if not any(keyword in pdf_lower for keyword in restaurant_keywords):
+        raise HTTPException(
+            status_code=400,
+           detail="The uploaded PDF does not appear to be a restaurant menu or restaurant document."
+       )
     set_pdf_text(pdf_text)
 
     # --------------------------------------------------------
@@ -105,7 +141,13 @@ async def upload_pdf(
 
     print("\n📄 PDF Profile")
     print(pdf_profile)
-
+    if not pdf_profile.get("restaurant_name", "").strip():
+        if save_path.exists():
+            save_path.unlink()    
+        raise HTTPException(
+            status_code=400,
+            detail="The uploaded PDF is not a restaurant menu or restaurant document."
+        )
     set_pdf_profile(pdf_profile)
 
     set_pdf_restaurant_name(
@@ -183,6 +225,7 @@ async def upload_pdf(
         chunks,
         persist_directory=persist_dir,
         collection_name="pdf_collection",
+        provider = provider,
     )
 
     vector_retriever = create_retriever(

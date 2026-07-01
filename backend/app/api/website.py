@@ -62,7 +62,33 @@ async def load_website_endpoint(request: WebsiteRequest):
             doc.page_content
             for doc in documents
         )
+        # =====================================================
+        # Basic Restaurant Website Validation
+        # =====================================================
 
+        restaurant_keywords = [
+           "restaurant",
+           "menu",
+           "food",
+          "biryani",
+          "pizza",
+          "burger",
+         "dessert",
+         "drinks",
+         "starter",
+         "main course",
+         "veg",
+         "chicken",
+         "paneer",
+        ]
+
+        website_lower = website_text.lower()
+
+        if not any(keyword in website_lower for keyword in restaurant_keywords):
+            raise HTTPException(
+                status_code=400,
+                detail="The provided website does not appear to be a restaurant website."
+        )
         # Save COMPLETE website for RAG
         set_website_text(website_text)
 
@@ -82,6 +108,15 @@ async def load_website_endpoint(request: WebsiteRequest):
         print("\n🍽 Website Profile")
         print(website_profile)
 
+       # =====================================================
+       # Validate Restaurant Website
+       # =====================================================
+
+        if not website_profile.get("restaurant_name", "").strip():
+            raise HTTPException(
+                status_code=400,
+                detail="The provided website is not a restaurant website."
+      )
         # =====================================================
         # Save Profile
         # =====================================================
