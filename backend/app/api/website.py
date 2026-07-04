@@ -35,6 +35,9 @@ async def load_website_endpoint(request: WebsiteRequest):
         # =====================================================
 
         provider = request.provider.lower().strip()
+        print("=" * 80)
+        print("REQUEST URL RECEIVED:", request.url)
+        print("=" * 80)
 
         if provider not in ["groq", "gemini"]:
             raise HTTPException(
