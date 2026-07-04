@@ -28,7 +28,7 @@ def extract_restaurant_profile(text: str) -> dict:
     """
 
     client = get_client()
-    text = text[:8000]
+    text = text[:40000]
 
     prompt = f"""
 You are an expert Restaurant Information Extractor.

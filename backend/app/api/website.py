@@ -98,7 +98,7 @@ async def load_website_endpoint(request: WebsiteRequest):
         # Don't send the entire website to the LLM.
         # Use only a small sample for profile extraction.
 
-        profile_text = website_text[:8000]
+        profile_text = website_text[:40000]
 
         website_profile = extract_restaurant_profile(
             profile_text,
