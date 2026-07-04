@@ -8,79 +8,80 @@ from app.api.history import router as history_router
 
 app = FastAPI(
     title="Restaurant Web Knowledge Bot",
-    description="Web Knowledge Bot with PDF RAG",
-    version="1.0.0"
+    description="Website RAG + PDF RAG + Hybrid Search + AI Assistant",
+    version="1.0.0",
 )
 
-# ==========================================
-# CORS
-# ==========================================
+# ==========================================================
+# CORS Configuration
+# ==========================================================
+
+origins = [
+    # Local Development
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+
+    # Vercel Production
+    "https://restaurant-web-knowledge-bot.vercel.app",
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ==========================================
-# Website API
-# ==========================================
+# ==========================================================
+# API Routers
+# ==========================================================
 
 app.include_router(
     website_router,
     prefix="/website",
-    tags=["Website"]
+    tags=["Website"],
 )
-
-# ==========================================
-# PDF Upload API
-# ==========================================
 
 app.include_router(
     upload_router,
     prefix="/upload",
-    tags=["PDF Upload"]
+    tags=["PDF Upload"],
 )
-
-# ==========================================
-# Chat API
-# ==========================================
 
 app.include_router(
     chat_router,
     prefix="/chat",
-    tags=["Chat"]
+    tags=["Chat"],
 )
-
-# ==========================================
-# History API
-# ==========================================
 
 app.include_router(
     history_router,
     prefix="/history",
-    tags=["History"]
+    tags=["History"],
 )
 
-# ==========================================
-# Root
-# ==========================================
+# ==========================================================
+# Root Endpoint
+# ==========================================================
 
 @app.get("/")
 async def root():
     return {
         "status": "success",
-        "message": "Restaurant Web Knowledge Bot API is Running 🚀"
+        "message": "Restaurant Web Knowledge Bot API is Running 🚀",
+        "version": "1.0.0",
     }
 
+
+# ==========================================================
+# Health Check
+# ==========================================================
 
 @app.get("/health")
 async def health():
     return {
-        "status": "healthy"
+        "status": "healthy",
+        "service": "Restaurant Web Knowledge Bot",
     }
