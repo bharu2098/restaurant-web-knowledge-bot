@@ -1,5 +1,5 @@
 import os
-
+from langchain_core.documents import Document
 # -------------------------------------------------------
 # Set User-Agent BEFORE importing WebBaseLoader
 # -------------------------------------------------------
@@ -15,7 +15,6 @@ from urllib.parse import urljoin, urlparse
 import requests
 from bs4 import BeautifulSoup
 
-from langchain_community.document_loaders import WebBaseLoader
 
 
 # ==========================================================
@@ -25,11 +24,10 @@ from langchain_community.document_loaders import WebBaseLoader
 MAX_PAGES = 30
 
 HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/137.0.0.0 Safari/537.36"
-    )
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Connection": "keep-alive",
 }
 
 
@@ -154,31 +152,45 @@ def load_website(url: str):
         for page in urls:
 
             try:
-
-                loader = WebBaseLoader(
-                    web_paths=(page,),
-                    requests_kwargs={
-                        "headers": HEADERS,
-                        "timeout": 30,
-                    },
-                )
-
-                docs = loader.load()
-
-                if docs:
-                    print("\n" + "=" * 80)
-                    print("LOADED URL :", page)
-                    print("SOURCE     :", docs[0].metadata.get("source", "Unknown"))
-                    print("TITLE      :", docs[0].metadata.get("title", "Unknown"))
-                    print("FIRST 1000 CHARACTERS:\n")
-                    print(docs[0].page_content[:1000])
-                    print("=" * 80)
-
-                documents.extend(docs)
-
-                print(
-                    f"✅ Loaded: {page} ({len(docs)} document)"
+                response = requests.get(
+                   page,
+                   headers=HEADERS,
+                   timeout=30,
                )
+
+                response.raise_for_status()
+                print("=" * 80)
+                print("FINAL URL:", response.url)
+                print("STATUS:", response.status_code)
+                print("=" * 80)
+
+                soup = BeautifulSoup(response.text, "html.parser")
+
+                # Remove unwanted tags
+                for tag in soup(["script", "style", "noscript", "svg", "footer"]):
+                    tag.decompose()
+
+                text = soup.get_text(separator="\n", strip=True)
+
+                print("\n" + "=" * 80)
+                print("PAGE :", page)
+                print("TITLE:", soup.title.string if soup.title else "No Title")
+                print("FIRST 1000 CHARACTERS:\n")
+                print(text[:1000])
+                print("=" * 80)
+
+                doc = Document(
+                    page_content=text,
+                    metadata={
+                        "source": page,
+                        "title": soup.title.string if soup.title else "",
+                   },
+               )
+
+                documents.append(doc)
+
+                print(f"✅ Loaded: {page}")
+                
 
             except Exception as e:
 
