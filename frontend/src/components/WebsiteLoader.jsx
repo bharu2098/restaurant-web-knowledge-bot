@@ -18,18 +18,39 @@ function WebsiteLoader() {
   const handleLoadWebsite = async () => {
     if (!url.trim()) return;
 
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
     try {
-      setLoading(true);
-      setError("");
-      setSuccess("");
+      const result = await loadWebsite(url.trim());
 
-      await loadWebsite(url);
+      if (!result.success) {
+        let message = result.error || "Failed to load website.";
 
-      setSuccess("Website loaded successfully!");
+        // Remove "400:" if backend sends it
+        message = message.replace(/^400:\s*/, "");
+
+        setError(message);
+        return;
+      }
+
+      setSuccess(
+        result.message || "Website loaded successfully!"
+      );
+
       setUrl("");
+
     } catch (err) {
       console.error(err);
-      setError(err.message || "Failed to load website.");
+
+      let message =
+        err.message || "Failed to load website.";
+
+      message = message.replace(/^400:\s*/, "");
+
+      setError(message);
+
     } finally {
       setLoading(false);
     }
@@ -73,14 +94,23 @@ function WebsiteLoader() {
           placeholder="https://restaurant.com"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => {
+            if (
+              e.key === "Enter" &&
+              !loading &&
+              url.trim()
+            ) {
+              handleLoadWebsite();
+            }
+          }}
           className="w-full h-12 pl-12 pr-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
         />
 
       </div>
 
-      {/* Success */}
+      {/* Success Message */}
       {success && (
-        <div className="mt-3 flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 p-2">
+        <div className="mt-3 flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 p-3">
 
           <CheckCircle
             className="text-green-600"
@@ -94,30 +124,30 @@ function WebsiteLoader() {
         </div>
       )}
 
-      {/* Error */}
+      {/* Error Message */}
       {error && (
-        <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 p-2">
+        <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 p-3">
 
           <AlertCircle
             className="text-red-600"
             size={18}
           />
 
-          <span className="text-sm text-red-700">
+          <span className="text-sm text-red-700 break-words">
             {error}
           </span>
 
         </div>
       )}
 
-      {/* Button */}
+      {/* Load Button */}
       <button
         onClick={handleLoadWebsite}
-        disabled={!url || loading}
-        className={`mt-4 w-full h-11 rounded-xl font-semibold transition flex items-center justify-center gap-2 ${
-          url && !loading
-            ? "bg-green-600 hover:bg-green-700 text-white"
-            : "bg-gray-300 text-gray-500 cursor-not-allowed"
+        disabled={!url.trim() || loading}
+        className={`mt-4 w-full h-11 rounded-xl font-semibold flex items-center justify-center gap-2 transition ${
+          !url.trim() || loading
+            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+            : "bg-green-600 hover:bg-green-700 text-white"
         }`}
       >
         {loading ? (

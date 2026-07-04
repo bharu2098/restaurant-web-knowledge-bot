@@ -165,7 +165,11 @@ async def load_website_endpoint(request: WebsiteRequest):
             "knowledge_base": "Website",
             "pages_loaded": len(documents),
         }
+    # Let FastAPI return original HTTP errors (400, 404, etc.)
+    except HTTPException:
+        raise
 
+    # Unexpected errors only
     except Exception as e:
 
         print("\n" + "=" * 80)
@@ -175,5 +179,5 @@ async def load_website_endpoint(request: WebsiteRequest):
 
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to load website: {str(e)}",
+            detail="Internal server error while loading website."
         )

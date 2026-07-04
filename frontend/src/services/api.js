@@ -23,15 +23,20 @@ async function apiRequest(endpoint, options = {}) {
     }
 
     if (!response.ok) {
-      throw new Error(
-        data?.detail ||
-        data?.message ||
-        data ||
-        "Something went wrong."
-      );
+      return {
+        success: false,
+        error:
+          data?.detail ||
+          data?.message ||
+          data ||
+          "Something went wrong.",
+      };
     }
 
-    return data;
+    return {
+      success: true,
+      ...data,
+    };
 
   } catch (error) {
 

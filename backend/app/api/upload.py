@@ -134,20 +134,33 @@ async def upload_pdf(
     # Extract PDF Restaurant Profile
     # --------------------------------------------------------
 
-    pdf_profile = extract_restaurant_profile(
-        pdf_text,
-        provider=provider,
-    )
-
-    print("\n📄 PDF Profile")
-    print(pdf_profile)
-    if not pdf_profile.get("restaurant_name", "").strip():
+    try:
+        pdf_profile = extract_restaurant_profile(
+            pdf_text,
+            provider=provider,
+        )
+    except Exception:
         if save_path.exists():
-            save_path.unlink()    
+            save_path.unlink()
+
         raise HTTPException(
             status_code=400,
             detail="The uploaded PDF is not a restaurant menu or restaurant document."
         )
+
+    print("\n📄 PDF Profile")
+    print(pdf_profile)
+    if (
+        not pdf_profile.get("restaurant_name", "").strip()
+        and not pdf_profile.get("menu")
+    ):
+        if save_path.exists():
+            save_path.unlink()
+
+        raise HTTPException(
+            status_code=400,
+            detail="The uploaded PDF is not a restaurant menu or restaurant document."
+    )
     set_pdf_profile(pdf_profile)
 
     set_pdf_restaurant_name(
@@ -170,12 +183,17 @@ async def upload_pdf(
         )
 
         if not validation["valid"]:
-            set_restaurant_verified(False)
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "message": validation["message"],
-                    "conflicts": validation["conflicts"]
+
+           if save_path.exists():
+               save_path.unlink()
+
+           set_restaurant_verified(False)
+
+           raise HTTPException(
+               status_code=400,
+               detail={
+                   "message": validation["message"],
+                   "conflicts": validation["conflicts"]
                 }
             )
 

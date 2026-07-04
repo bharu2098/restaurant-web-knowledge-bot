@@ -28,6 +28,7 @@ def extract_restaurant_profile(text: str) -> dict:
     """
 
     client = get_client()
+    text = text[:8000]
 
     prompt = f"""
 You are an expert Restaurant Information Extractor.
@@ -128,17 +129,33 @@ Restaurant Content:
 {text}
 """
 
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[
-            {
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+               {
                 "role": "user",
                 "content": prompt
-            }
-        ],
-        temperature=0,
-        response_format={"type": "json_object"},
-    )
+               }
+           ],
+           temperature=0,
+           response_format={"type": "json_object"},
+       )
+
+    except Exception as e:
+
+        print("\n========== GROQ ERROR ==========")
+        print(e)
+        print("================================")
+
+        return {
+           "restaurant_name": "",
+           "address": "",
+           "phone": "",
+           "email": "",
+           "timings": "",
+           "menu": {}
+        }
 
     content = response.choices[0].message.content.strip()
 

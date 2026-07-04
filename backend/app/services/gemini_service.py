@@ -33,6 +33,7 @@ def extract_restaurant_profile(text: str) -> dict:
     """
 
     llm = get_llm()
+    text = text[:8000]
 
     prompt = f"""
 You are an expert Restaurant Information Extractor.
@@ -115,9 +116,23 @@ Restaurant Content:
 {text}
 """
 
-    response = llm.invoke(prompt)
+    try:
+       response = llm.invoke(prompt)
+       content = response.content.strip()
 
-    content = response.content.strip()
+    except Exception as e:
+        print("\n========== GEMINI ERROR ==========")
+        print(e)
+        print("=================================\n")
+
+        return {
+            "restaurant_name": "",
+            "address": "",
+            "phone": "",
+            "email": "",
+            "timings": "",
+            "menu": {}
+       }
 
     # Remove markdown if Gemini returns it
     content = content.replace("```json", "")
@@ -125,10 +140,9 @@ Restaurant Content:
     content = content.strip()
 
     try:
-        return json.loads(content)
+       return json.loads(content)
 
     except Exception:
-
         return {
             "restaurant_name": "",
             "address": "",

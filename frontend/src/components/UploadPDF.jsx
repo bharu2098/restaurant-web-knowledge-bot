@@ -4,6 +4,7 @@ import {
   Upload,
   CheckCircle,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 
 import { uploadPDF } from "../services/api";
@@ -16,42 +17,62 @@ function UploadPDF() {
 
   const inputRef = useRef(null);
 
+  const clearSelection = () => {
+    setFile(null);
+
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+  };
+
   const handleFileChange = (e) => {
     const selected = e.target.files[0];
 
     if (!selected) return;
 
-    if (selected.type !== "application/pdf") {
-      setError("Please select a PDF file.");
-      setSuccess("");
-      setFile(null);
+    setSuccess("");
+    setError("");
+
+    if (
+      selected.type !== "application/pdf" &&
+      !selected.name.toLowerCase().endsWith(".pdf")
+    ) {
+      setError("Please select a valid PDF file.");
+      clearSelection();
       return;
     }
 
-    setError("");
-    setSuccess("");
     setFile(selected);
   };
 
   const handleUpload = async () => {
     if (!file) return;
 
+    setLoading(true);
+    setSuccess("");
+    setError("");
+
     try {
-      setLoading(true);
-      setError("");
-      setSuccess("");
+      const result = await uploadPDF(file);
 
-      await uploadPDF(file);
-
-      setSuccess("PDF uploaded successfully!");
-      setFile(null);
-
-      if (inputRef.current) {
-        inputRef.current.value = "";
+      if (!result.success) {
+        setError(result.error || "Upload failed.");
+        clearSelection();
+        return;
       }
+
+      setSuccess(result.message || "PDF uploaded successfully!");
+      clearSelection();
+
     } catch (err) {
       console.error(err);
-      setError(err.message || "Upload failed.");
+
+      setError(
+        err.message || "Unable to upload PDF."
+      );
+
+      clearSelection();
+
     } finally {
       setLoading(false);
     }
@@ -126,15 +147,33 @@ function UploadPDF() {
 
       {/* Success */}
       {success && (
-        <div className="mt-3 rounded-lg bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-700">
-          {success}
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3">
+
+          <CheckCircle
+            className="text-green-600"
+            size={18}
+          />
+
+          <span className="text-sm text-green-700">
+            {success}
+          </span>
+
         </div>
       )}
 
       {/* Error */}
       {error && (
-        <div className="mt-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-          {error}
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
+
+          <AlertCircle
+            className="text-red-600"
+            size={18}
+          />
+
+          <span className="text-sm text-red-700 break-words">
+            {error}
+          </span>
+
         </div>
       )}
 
