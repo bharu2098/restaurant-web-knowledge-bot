@@ -49,6 +49,14 @@ async def load_website_endpoint(request: WebsiteRequest):
         # =====================================================
 
         documents = load_website(request.url)
+        print("=" * 80)
+        print("DOCUMENT COUNT:", len(documents))
+        print("=" * 80)
+
+        for i, doc in enumerate(documents):
+            print(f"\nDOCUMENT {i+1}")
+            print("SOURCE:", doc.metadata.get("source"))
+            print(doc.page_content[:500])
 
         if not documents:
             raise ValueError(
@@ -65,6 +73,10 @@ async def load_website_endpoint(request: WebsiteRequest):
             doc.page_content
             for doc in documents
         )
+        print("=" * 80)
+        print("WEBSITE TEXT")
+        print(website_text[:5000])
+        print("=" * 80)
         # =====================================================
         # Basic Restaurant Website Validation
         # =====================================================

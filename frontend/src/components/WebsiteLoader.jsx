@@ -23,7 +23,7 @@ function WebsiteLoader() {
     setSuccess("");
 
     try {
-      console.log("Website URL:", websiteUrl);
+      console.log("Website URL:", url);
       const result = await loadWebsite(url.trim());
 
       if (!result.success) {
