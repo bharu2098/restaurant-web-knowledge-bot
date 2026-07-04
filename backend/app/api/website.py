@@ -104,6 +104,11 @@ async def load_website_endpoint(request: WebsiteRequest):
             profile_text,
             provider=provider,
         )
+        print("=" * 80)
+        print("PROFILE LENGTH:", len(profile_text))
+        print("PROFILE PREVIEW:")
+        print(profile_text[:5000])
+        print("=" * 80)
 
         print("\n🍽 Website Profile")
         print(website_profile)
