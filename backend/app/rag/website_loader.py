@@ -51,6 +51,12 @@ def get_internal_links(base_url: str):
     )
 
     response.raise_for_status()
+    print("\n" + "=" * 80)
+    print("REQUEST URL :", response.url)
+    print("STATUS CODE :", response.status_code)
+    print("FIRST 1000 HTML:\n")
+    print(response.text[:1000])
+    print("=" * 80)
 
     soup = BeautifulSoup(
         response.text,
@@ -159,11 +165,20 @@ def load_website(url: str):
 
                 docs = loader.load()
 
+                if docs:
+                    print("\n" + "=" * 80)
+                    print("LOADED URL :", page)
+                    print("SOURCE     :", docs[0].metadata.get("source", "Unknown"))
+                    print("TITLE      :", docs[0].metadata.get("title", "Unknown"))
+                    print("FIRST 1000 CHARACTERS:\n")
+                    print(docs[0].page_content[:1000])
+                    print("=" * 80)
+
                 documents.extend(docs)
 
                 print(
                     f"✅ Loaded: {page} ({len(docs)} document)"
-                )
+               )
 
             except Exception as e:
 
