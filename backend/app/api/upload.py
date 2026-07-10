@@ -181,6 +181,10 @@ async def upload_pdf(
             pdf_profile,
             website_profile,
         )
+        print("=" * 80)
+        print("VALIDATION RESULT")
+        print(validation)
+        print("=" * 80)
 
         if not validation["valid"]:
 

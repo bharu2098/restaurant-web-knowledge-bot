@@ -23,15 +23,24 @@ async function apiRequest(endpoint, options = {}) {
     }
 
     if (!response.ok) {
-      return {
-        success: false,
-        error:
-          data?.detail ||
-          data?.message ||
-          data ||
-          "Something went wrong.",
-      };
-    }
+  let errorMessage = "Something went wrong.";
+  let conflicts = [];
+
+  if (typeof data?.detail === "string") {
+    errorMessage = data.detail;
+  } else if (data?.detail && typeof data.detail === "object") {
+    errorMessage = data.detail.message || "Something went wrong.";
+    conflicts = data.detail.conflicts || [];
+  } else if (typeof data?.message === "string") {
+    errorMessage = data.message;
+  }
+
+  return {
+    success: false,
+    error: errorMessage,
+    conflicts,
+  };
+}
 
     return {
       success: true,
